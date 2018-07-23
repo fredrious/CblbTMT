@@ -1,0 +1,41 @@
+
+
+- Pre-processing steps:
+1. Shared peptides between protein-groups removed -> unique peptide for each protein.
+2. PSM which has missing measurements within each run removed.
+	(each PSM should have 6 measurements -number of channels- in each run, i.e.: no NA per Run per PSM)
+3. Peptide ions overlapped among multiple fractions of same biological mixture removed.
+4. When there are multiple measurements for certain feature and certain run, the maximum intensities is selected.
+5. Proteins which have only 1 peptide removed. ——> no Single-Shot protein
+6. Fractions belonging to same mixture are combined.
+
+
+- Summarizing PSM level quantification to protein level quantification —> method: Median Polish
+1. Log2 transformation
+2. Median Polish summarization (similar to averaging)
+3. Reversing Log2 transformation 
+4. Apply VSN normalisation between Runs and Channels. 
+VSN automatically transforms intensities to log scale, similar to log2. That’s why I reversed the Log2 transformation before VSN normalisation. 
+There might be better ways. The standard way of doing BETWEEN run normalization for TMT is to have a reference channel (Norm) for each Run. We don’t have!
+Imp!!! —> Normalization is performed AFTER protein-level summarization
+
+
+
+###############
+
+- Finding differentially abundant proteins across conditions in TMT experiment
+1. Using moderated t-test from Limma 
+2. Adjusted p-value —> benjamini-hochberg correction
+3. Pairwise comparison between All conditions
+4. Pairwise comparison between WT and CBLB
+
+
+- Plots
+1. Correlation plots between conditions and Biorepiicates.
+2. Profile plots of every protein. The pdf file contains all ~2500 proteins, showing the intensities of every single Peptide of the protein for each condition.
+3. Two pairwise volcano plot: one between all possible conditions, and one between WT and CBLB KO.
+
+- Lists
+1. List of top 1% significantly regulated Proteins for each pairwise comparison.
+2. List of top 1% significantly regulated Proteins for combined comparison between WT and CBLB KO.
+(1% is arbitrary, can be changed as desired.)

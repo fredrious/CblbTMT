@@ -1,0 +1,68 @@
+---
+title: "cblb_workflow"
+author: "Farhad Shakeri"
+date: "6/25/2018"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+# knitr::opts_knit$set(root.dir = "/Users/farhad/_Rspace/cblb_wtVkn/newMeasurements")
+```
+
+## Overlook
+
+Generally, the standard workflow in proteomics is as foloows:
+
+* __Pre-processing the raw data__
+    + Reformatting & cleanning
+    + Protein counts, uniqueness, repeated measurements
+    + Dealing with missing values
+    + Quality control\
+
+* __Data Summarization__\
+The raw data are in `Feature` level. A `Feature` is defined as the combination of `Protein + Peptide + Charge`. For significance analysis, the abundance should be rolled-up (or summarized) to `Protein` level. There are various methods to do that like simple averaging, linear model, sum and etc. I use *__Tukey's median polish__*, which is a robust averaging method, resistant against outliers. The median polish is applied to every `Protein` over all `Channels` and `Mixtures`. Note that the `Fractions` (or *Runs*) belonging to each *biological* `Mixture` should be combined prior to this step. In practice, for each `Protein` we have a matrix with `Feature` `Abundances` vs. `Channels` and `Mixtures`. 
+
+* __Significance Analysis__\
+Finding differentially abundant proteins across conditions. Here I use moderated *t-test* from `Limma` Package. The outcome of this step is a list of _p values_ and _log-fold-changes_, which will be used to select the top hit proteins and generate volcano plots.
+
+
+## Workflow
+
+* __Pre-processing the raw data__ 
+
+1. Removing shared PSMs between protein-groups.\
+The assumption is that each `PSM` should belong to only one `Protein`. The column `#.Protein.Groups` from _Proteome Discoverer_ output file provides information on the number of `Proteins` to which belongs a specific `PSM`. As the first filter, I only use the rows in which the `#.Protein.Groups` is equal to 1.
+
+```{r echo=FALSE}
+table(work$numProtein)
+```
+
+
+1. Removing shared peptides between protein-groups. Using only unique peptides.\
+> Raw data: #Protein 6068
+> Raw data: #Protein 6068
+
+
+## Pre-processing steps
+
+1. Removing shared peptides between protein-groups. Using only unique peptides.
+
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
