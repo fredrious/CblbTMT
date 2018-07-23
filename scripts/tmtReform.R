@@ -40,7 +40,7 @@ ens <- useMart("ensembl", "mmusculus_gene_ensembl")
 meas <- "new"
 if (meas=="new") {
   ## Reading PSM data --> new measurements. 25.06.2018 --> run 39 is missing!
-  psm.raw <- as.data.table(read_excel(pate0(ddir,"180504_P_268_IC_Pool3_7_8_SPS_180620_PSMs.xlsx")))
+  psm.raw <- as.data.table(read_excel(paste0(ddir,"180504_P_268_IC_Pool3_7_8_SPS_180620_PSMs.xlsx")))
   ## Rename Spectrum files to match format
   psm.raw$`Spectrum File` <- gsub("_SPS","", psm.raw$`Spectrum File`)
   psm.raw$`Spectrum File` <- gsub("_tr4","", psm.raw$`Spectrum File`)
