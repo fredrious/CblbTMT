@@ -118,42 +118,75 @@ pca.plot <- function(dc) {
 
 ###############################
 ## plot heatmap
-hmap.plot <- function(hm.mat) {
+hmap.plot <- function(hm.mat0) {
   require("RColorBrewer")
   
-  da <- data.table(cond=colnames(hm.mat))
-  da[, c("Condition", "Replicate") := tstrsplit(cond, "\n",  fixed=TRUE)]
+  da <- data.table(cond=colnames(hm.mat0))
+  da[, c("Condition", "BioReplicate") := tstrsplit(cond, "\nRep",  fixed=TRUE)]
   da[, c("Type", "Time") := tstrsplit(Condition, ".",  fixed=TRUE)]
-  da$Replicate <- gsub("Rep","", da$Replicate)
-  da <- da[reftb[,c("Condition","Replicate", "Mixture")], on=c("Condition","Replicate")]
+  # da$Replicate <- gsub("Rep","", da$Replicate)
+  da <- da[reftb[,c("Condition","BioReplicate", "Mixture")], on=c("Condition","BioReplicate")]
+  da <- char2fact(da)
+    daList <- as.list(NULL)
+    daList[["Time + Type + BioReplicate"]] <- da[order(Time, Type,BioReplicate, decreasing=FALSE),]
+    daList[["BioReplicate + Type + Time"]] <- da[order(BioReplicate,Type,Time, decreasing=FALSE),]
+    daList[["Mixture + Type + Time"]] <- da[order(Mixture,Type,Time, decreasing=FALSE),]
+    daList[["Type + Time"]] <- da[order(Type,Time, decreasing=FALSE),]
+    
   
-  ha = HeatmapAnnotation(df = as.data.frame(da[,c("Replicate", "Mixture", "Type") ]), 
-                         col = list(Replicate = c("3" = "blue", "7" = "grey", "8" = "red"),
-                                    Mixture = c("2" = "green", "3" = "yellow", "4" = "pink"),
-                                    Type = c("WT" = "darkblue", "Cblb" = "darkred")),
-                         show_legend = c(TRUE, TRUE, TRUE))
+    hmList <- as.list(NULL)
+    for (i in 1:length(daList) ) {  
+      
+      dda <- as.data.frame(daList[[i]])
+                           
+      hm.mat <- hm.mat0[,as.character(dda$cond)]
+      nms <- data.table(names=rownames(hm.mat))
+      nms[, col:="black"]
+      nms[names %like% "Irf4" | names %like% "Nck1" | names %like% "Rela" | names %like% "Cblb" , col := "red"]
+      dda <- as.data.frame(daList[[i]][,c("BioReplicate", "Mixture", "Type", "Time") ])
+      
+      ha = HeatmapAnnotation(df = dda, 
+                             col = list(BioReplicate = c("3" = "thistle2", "7" = "tan1", "8" = "lightseagreen"),
+                                        Mixture = c("2" = "honeydew2", "3" = "honeydew3", "4" = "steelblue2"),
+                                        Time = c("0h" = "khaki", "24h" = "pink3", "48h" = "mediumpurple4"),
+                                        Type = c("WT" = "steelblue4", "Cblb" = "tomato3")),
+                             show_legend = c(TRUE, TRUE, TRUE, TRUE))
+      
+        
+      if (i != length(daList)) {
+        clustCol = FALSE
+        rowName = FALSE 
+        ttl = paste0("HM ordered by:   ", names(daList)[i])
+        columnCol = rep(c("black","grey40"), nrow(dda)/2)
+      } else {
+        clustCol = TRUE
+        rowName = TRUE   
+        ttl = "HM ordered by cluster"
+        columnCol = rep(c("black"), nrow(dda))
+        }
+      
+      hmList[[names(daList)[i]]] <- Heatmap(hm.mat, name = "Abundance",
+                         # column_dend_height = unit(2, "cm"), 
+                         row_dend_width = unit(2, "cm"),
+                         na_col = "white", 
+                         clustering_distance_rows = "euclidean",
+                         clustering_distance_columns = "euclidean",
+                         cluster_columns = clustCol,
+                         # col = circlize::colorRamp2(c(3,7), c("darkblue", "yellow"))
+                         col <- colorRampPalette(rev(brewer.pal(10, "RdYlBu")) )(256),
+                         row_names_gp = gpar(col = nms$col, fontsize = 8),
+                         column_names_gp = gpar(col = columnCol, fontsize = 8),
+                         column_title = ttl,
+                         show_row_names = rowName,
+                         column_title_gp = gpar(fontsize = 12, fontface = "bold"),
+                         top_annotation = ha) 
+      
+      
+      }
   
-  hm.plot <- Heatmap(hm.mat, name = "Abundance", 
-                     # column_dend_height = unit(2, "cm"), 
-                     row_dend_width = unit(2, "cm"),
-                     na_col = "white", 
-                     clustering_distance_rows = "pearson",
-                     cluster_columns = FALSE,
-                     # col = circlize::colorRamp2(c(3,7), c("darkblue", "yellow"))
-                     col <- colorRampPalette(brewer.pal(10, "RdYlBu"))(256),
-                     top_annotation = ha)
+  hm.all <- hmList[[1]] + hmList[[2]] + hmList[[3]] + hmList[[4]]
   
-  hmallclust.plot <- Heatmap(hm.mat, name = "Abundance", 
-                             # column_dend_height = unit(2, "cm"), 
-                             row_dend_width = unit(2, "cm"),
-                             na_col = "white", 
-                             clustering_distance_rows = "pearson",
-                             cluster_columns = TRUE,
-                             # col = circlize::colorRamp2(c(3,7), c("darkblue", "yellow"))
-                             col <- colorRampPalette(brewer.pal(10, "RdYlBu"))(256),
-                             top_annotation = ha)
-  
-  return(list(hm.plot, hmallclust.plot))
+  return(hm.all)
 }
 ##############################
 

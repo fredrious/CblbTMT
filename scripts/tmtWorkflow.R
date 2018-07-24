@@ -85,31 +85,26 @@ for (lx in 1:length(allChannelsIn.arr)) {
     work0 <- work0[cntProt==1]
     ## The process remove 150462 rows --> 11% of the data
     # work0[,Quan.Info:=factor("Unique")] #Now Quant.info can be marked as unique. ## this id needed for MSstatsTMT
-    
-    work0[,cntProt:=NULL]
-    ## define Feature and Proptide
-    work0[, Feature:= do.call(paste, c(.SD, sep = "_")), .SDcols=c("Protein", "Peptide", "Charge")]
-    work0[, Proptide:= do.call(paste, c(.SD, sep = "_")), .SDcols=c("Protein", "Peptide")]
-    ## Define Abundance as log2(Intensity)
-    work0[, Abundance := log2(Intensity)]
-    # Continue with Abundance: Andreas 6.6.2018
-    work0 <- work0[, list(Run, Channel, Protein, Peptide, Feature, 
-                          Charge, Proptide, Condition, BioReplicate, Mixture, Abundance)]
-    
-    
-    ####### STEP 2: removing PSMs with protein-counts != 1
-    # work <- work[numProtein == 1, ] # This is not neccessary after removing shared proteins manually in STEP 1.
-    # work0[,numProtein := NULL] # After STEP 1, protein counts per PSM are already 1.
+        
+        work0[,cntProt:=NULL]
+        ## define Feature and Proptide
+        work0[, Feature:= do.call(paste, c(.SD, sep = "_")), .SDcols=c("Protein", "Peptide", "Charge")]
+        work0[, Proptide:= do.call(paste, c(.SD, sep = "_")), .SDcols=c("Protein", "Peptide")]
+        ## Define Abundance as log2(Intensity)
+        work0[, Abundance := log2(Intensity)]
+        # Continue with Abundance: Andreas 6.6.2018
+        work0 <- work0[, list(Run, Channel, Protein, Peptide, Feature, 
+                              Charge, Proptide, Condition, BioReplicate, Mixture, Abundance)]
     
     
-    ####### STEP 3: Peptides, that are used in more than one proteins (Similar to previous step. This is a double check!)
+    
+    ####### STEP 2: Peptides, that are used in more than one proteins (Similar to previous step. This is a double check!)
     notUnqPpt <- work0[, c(.(cnt = uniqueN(Protein))), by = list(Peptide)] [cnt!=1, Peptide]
     if (length(notUnqPpt) > 0) work0 <- work0[!Peptide %chin% notUnqPpt,]
-    
-    
-    
+
     work1 <- copy(work0)
     work1[Abundance=="NaN", Abundance := NA]
+    work1 <- char2fact(work1)  
     
     
     ## NA count per feature and Run
@@ -126,6 +121,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
     
     print(paste0(NAfeat, "% of the Features have at least 1 NA value across all Runs and Channels."))
     print(paste0("Degree of missingness in Features varies from ~",mnNA, "% to ~", mxNA, "%"))
+    
     
     
     ########################################################
@@ -153,6 +149,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
       work1[ ,Abundance := max(Abundance, na.rm=TRUE), by=list(Feature, Mixture, Run, Channel)] #max
       # work1[work1[, .I[which.max(Abundance)],  by=list(Feature, Mixture, Run, Channel)]$V1]
     } 
+    
     ## after mean/max/median ... work is not unique:
     # work1[Feature == "P17742_sIYGEKFEDENFILk_3" & Run == 40 & Channel ==126,]
     # Run Channel Protein         Peptide                  Feature Charge               Proptide
@@ -163,10 +160,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
     # 2:     WT.0h            3       2  9.176075
     
     work1 <- unique(work1)
-    ## Example 1. BEFORE AVERAGING
-    ## work0[Run==100 & Mixture==4 & Channel==130 & Feature =="P62301_vLPPNWk_2"]
-    ## Example 1. AFTER AVERAGING
-    ## work[Run==100 & Mixture==4 & Channel==130 & Feature =="P62301_vLPPNWk_2"]
+
     
     ## Number of Charge states per Peptide per Protein
     cnt.work1 <- work1[, .(n = uniqueN(Charge)), by = list(Proptide)] 
@@ -275,7 +269,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
     cnt.work2 <- work2[, c(.(cnt = sum(!is.na(Abundance)))), by = list(Mixture, Protein, Feature)] 
     work3 <- work2[cnt.work2[cnt != 0,-"cnt"], on=c("Protein", "Mixture", "Feature")]
     cnt.work3 <- work3[, c(.(cnt = sum(!is.na(Abundance)))), by = list(Mixture, Protein, Feature)] 
-    
+
     # tb <- table(cnt.work3$cnt)
     # dtb <- apply(data.matrix(as.data.frame(tb)) , 1, prod)
     # outperc <- round(100*(sum(dtb[1:5]) / dtb[6]),1)
@@ -313,10 +307,9 @@ for (lx in 1:length(allChannelsIn.arr)) {
     ################################################################# 
     ## VSN normalization  
     work <- VSNnorm(work3)
-    setnames(work, old="Abundance", new="Abundance.noNorm")
-    setnames(work, old="Abundance.norm", new="Abundance")
-    changeCols<- c(names(Filter(is.character, work)), names(Filter(is.integer, work)))
-    work[,(changeCols):=lapply(.SD, as.factor),.SDcols=changeCols]
+        setnames(work, old="Abundance", new="Abundance.noNorm")
+        setnames(work, old="Abundance.norm", new="Abundance")
+        work <- char2fact(work)
     ################################################################# 
     
     
@@ -349,7 +342,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
                                  "external_gene_name",  "entrezgene", "description"), 
                   # filters = "uniprotswissprot", values = "Q64213", 
                   filters = "uniprotswissprot", values = unique(workf$Protein),
-                  uniqueRows=FALSE, mart = ens, uniqueRows)
+                  uniqueRows=FALSE, mart = ens)
     trans <- as.data.table(trans)
     
     
@@ -408,6 +401,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
     
     
     
+    
     ## this will be needed  
     workf0 <- copy(workf)
     ################################################################# 
@@ -423,19 +417,19 @@ for (lx in 1:length(allChannelsIn.arr)) {
     
     ################################################################# 
     ## Generate PCA plots
-    prtvar <- workf[, c(.(var = var(Abundance))), by = list(Protein)]
-    tmp <- prtvar[order(-var)]
-    tmp <- tmp[1:500,]
-    tmp <- workf[Protein %in% tmp$Protein,]
+    prtvar <- workf0[, c(.(var = var(Abundance))), by = list(Protein)]
+      tmp <- prtvar[order(-var)]
+      tmp <- tmp[1:500,]
+      tmp <- workf0[Protein %in% tmp$Protein,]
     
-    wk <- data.table::dcast(tmp, Protein ~ Condition + Mixture + BioReplicate, value.var = "Abundance")
-    wk$na_count <- apply(wk[,-1], 1, function(x) sum(is.na(x)))
-    wk <- wk[na_count ==0]
-    mat <- as.matrix(wk[,-c("Protein","na_count")])
-    pca2 = prcomp(t(mat), scale = TRUE)
+        wk <- data.table::dcast(tmp, Protein ~ Condition + Mixture + BioReplicate, value.var = "Abundance")
+        wk$na_count <- apply(wk[,-1], 1, function(x) sum(is.na(x)))
+        wk <- wk[na_count ==0]
+        mat <- as.matrix(wk[,-c("Protein","na_count")])
+        pcaF = prcomp(t(mat), scale. = FALSE, center = TRUE)
     
     ## plot pca     
-    pcaplot <- pca.plot(pca2)
+    pcaplot <- pca.plot(pcaF)
     ################################################################# 
     
     
@@ -448,33 +442,25 @@ for (lx in 1:length(allChannelsIn.arr)) {
     topPrtCom = topList[topList[, .I[1:topN], Comparison]$V1, list(Comparison, Protein, Gene)]   
     hm.protein <- unique(topPrtCom$Protein)
     
+    reftb <- unique(workf0[,c("BioReplicate", "Condition", "Mixture", "Channel")])
     
-    hm.dt <- workf[Protein %chin% hm.protein] 
-    if (!"Cblb" %in% hm.dt$Gene) { 
-      hm.dt <- rbind(workf[Gene %chin% c("Irf4","Cblb")], hm.dt) ## add cblb and Irf4
-    }
+      hm.dt <- workf[Protein %chin% hm.protein] 
+      if (!"Cblb" %in% hm.dt$Gene) { 
+        hm.dt <- rbind(workf[Gene %chin% c("Irf4","Cblb")], hm.dt) ## add cblb and Irf4
+      }
+      
+      hm.dt[, Rep := tstrsplit(BioReplicate, "_",  fixed=TRUE)[3]]
+      hm.dt[, xTag := do.call(paste, c(.SD, sep = "\nRep")), .SDcols=c("Condition", "Rep")]
+      hm.dt[, yTag := do.call(paste, c(.SD, sep = " _ ")), .SDcols=c("Protein", "Gene")]
+      
+      hm.dt.w <- data.table::dcast(hm.dt, yTag ~ xTag, value.var="Abundance" )
+      hm.mat <- as.matrix(hm.dt.w[,-1])
+      rownames(hm.mat) <- hm.dt.w$yTag
     
-    hm.dt[, Rep := tstrsplit(BioReplicate, "_",  fixed=TRUE)[3]]
-    hm.dt[, xTag := do.call(paste, c(.SD, sep = "\nRep")), .SDcols=c("Condition", "Rep")]
-    hm.dt[, yTag := do.call(paste, c(.SD, sep = "_")), .SDcols=c("Protein", "Gene")]
-    
-    hm.dt.w <- data.table::dcast(hm.dt, yTag ~ xTag, value.var="Abundance" )
-    hm.mat <- as.matrix(hm.dt.w[,-1])
-    rownames(hm.mat) <- hm.dt.w$yTag
-    
-    # 
-    #      mypal <- colorRampPalette( brewer.pal( 10 , "RdYlBu" ) )
-    #      hm.plot <- ggplot(data=hm.dt, aes(x=xTag, y=yTag, fill=Abundance)) +
-    #        geom_tile(color="white", size=0.05) +
-    #        scale_fill_distiller(palette = "Spectral",na.value = "grey70") +
-    #        facet_grid(~Mixture, scales = "free", space = "free", switch="y") +
-    #        scale_fill_manual( values = mypal )+
-    #        theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
     
     ## plot heatmaps
     hmOut <- hmap.plot(hm.mat)
-    hm.plot <- hmOut[[1]]
-    hmallclust.plot  <- hmOut[[2]]
+    
     ################################################################# 
     
     
@@ -505,13 +491,18 @@ for (lx in 1:length(allChannelsIn.arr)) {
     volc_cblb(fitList, savefile=savefile, label = TRUE)    
     
     
-    pdf(paste0(getwd(),"/loop_all/heatmap/TopProt_Heatmap_",savePhrase,".pdf"), width = 12, height = 11)
-    print(hm.plot)
+    # pdf(paste0(getwd(),"/loop_all/heatmap/TopProt_Heatmap_",savePhrase,".pdf"), width = 12, height = 11)
+    # print(hm.plot)
+    # dev.off()
+    # 
+    # pdf(paste0(getwd(),"/loop_all/heatmap_allclust/TopProt_Heatmap_",savePhrase,".pdf"), width = 12, height = 11)
+    # print(hmallclust.plot)
+    # dev.off()
+    
+    pdf(paste0(getwd(),"/loop_all/heatmap_all/TopProt_Heatmap_",savePhrase,".pdf"), width = 17, height = 13)
+    draw(hmOut, annotation_legend_side = "bottom")
     dev.off()
     
-    pdf(paste0(getwd(),"/loop_all/heatmap_allclust/TopProt_Heatmap_",savePhrase,".pdf"), width = 12, height = 11)
-    print(hmallclust.plot)
-    dev.off()
     
     pdf(paste0(getwd(),"/loop_all/pca/PCA_",savePhrase,".pdf"), width = 9, height = 7)
     print(pcaplot)

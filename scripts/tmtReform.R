@@ -3,10 +3,10 @@
 
 # rm(list=ls())
 
-ddir <- "/Users/farhad/_Rspace/cblb_wtVkn/data/cblb_raw/"
-rdir <- "/Users/farhad/_Rspace/cblb_wtVkn/results/"
-rdir <- "/Users/farhad/_Rspace/cblb_wtVkn/scripts/"
-setwd("/Users/farhad/_Rspace/cblb_wtVkn/")
+# ddir <- "/Users/farhad/_Rspace/_prj_Wolf_Isabelle/data/cblb_raw/"
+# rdir <- "/Users/farhad/_Rspace/_prj_Wolf_Isabelle/results/"
+# rdir <- "/Users/farhad/_Rspace/_prj_Wolf_Isabelle/scripts/"
+# setwd("/Users/farhad/_Rspace/_prj_Wolf_Isabelle/")
 
 library("data.table")
 library("openxlsx")
@@ -40,7 +40,7 @@ ens <- useMart("ensembl", "mmusculus_gene_ensembl")
 meas <- "new"
 if (meas=="new") {
   ## Reading PSM data --> new measurements. 25.06.2018 --> run 39 is missing!
-  psm.raw <- as.data.table(read_excel(paste0(ddir,"180504_P_268_IC_Pool3_7_8_SPS_180620_PSMs.xlsx")))
+  psm.raw <- as.data.table(read_excel("data/180504_P_268_IC_Pool3_7_8_SPS_180620_PSMs.xlsx"))
   ## Rename Spectrum files to match format
   psm.raw$`Spectrum File` <- gsub("_SPS","", psm.raw$`Spectrum File`)
   psm.raw$`Spectrum File` <- gsub("_tr4","", psm.raw$`Spectrum File`)
@@ -69,7 +69,7 @@ psm.dt <- melt.data.table(psm.tmp, id.vars = names(psm.tmp)[!names(psm.tmp) %in%
 
 ###################################
 ## Reading PSM Annotation table and reformatting 
-psm.ano <- fread(file=paste0(ddir,"cblb_raw/171115_P_268_IC_Annotation.csv"), sep=c(";"), header=TRUE, dec=".", key = "RAW_Filenummer")
+psm.ano <- fread(file="data/171115_P_268_IC_Annotation.csv", sep=c(";"), header=TRUE, dec=".", key = "RAW_Filenummer")
 psm.ano[, c("from", "to") := tstrsplit(RAW_Filenummer, "-",  fixed=TRUE)]
 psm.ano[, c("from","to") := lapply(.SD, as.numeric), .SDcols=c("from","to")]
 # psm.ano[, Run.i:= lapply(.SD, function(x) as.numeric(sub(".*\\_([^.]+)\\..*", "\\1", x))), .SDcols=Run]
@@ -82,9 +82,10 @@ psm.ano[, RAW_Filenummer := NULL]
 ###################################
 ## change Charachter and Integer columns to Factor
 ## PSM table:
-changeCols<- c(names(Filter(is.character, psm.dt)), names(Filter(is.integer, psm.dt)))
-psm.dt[,(changeCols):=lapply(.SD, as.factor),.SDcols=changeCols]
-## Annotation table:
-changeCols<- c(names(Filter(is.character, psm.ano)), names(Filter(is.integer, psm.ano)))
-psm.ano[,(changeCols):=lapply(.SD, as.factor),.SDcols=changeCols]
+psm.dt <- char2fact(psm.dt)
+## Anootation table:
+psm.ano <- char2fact(psm.ano)
+psm.ano <- int2fact(psm.ano)
 ###################################
+
+

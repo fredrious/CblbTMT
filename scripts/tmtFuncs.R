@@ -20,6 +20,22 @@
 ################################
 
 
+###################################
+## change Charachter and Integer columns to Factor
+char2fact <- function(dt){
+  changeCols<- c(names(Filter(is.character, dt)), names(Filter(is.integer, dt)))
+  dt[,(changeCols):=lapply(.SD, as.factor),.SDcols=changeCols]
+return(dt)
+}
+
+int2fact <- function(dt){
+  changeCols<- c(names(Filter(is.character, dt)), names(Filter(is.integer, dt)))
+  dt[,(changeCols):=lapply(.SD, as.factor),.SDcols=changeCols]
+  return(dt)
+}
+###################################
+
+
 
 ################################
 ## function: median polish
@@ -61,37 +77,37 @@ MedPolInd <- function(dw) {
 ## VSN normalization
 VSNnorm <-  function(wdn) {
   
-  work.nrm[, Intensity := 2^Abundance]
+  wdn[, Intensity := 2^Abundance]
   if (toupper(FractComb) != "NONE") { # Fractions (Runs) are combined, continue with Mixtures
-    work.nrm.w  <- data.table::dcast(work.nrm, Protein + Peptide + Charge ~ Mixture + Channel, value.var = "Intensity")
+    wdn.w  <- data.table::dcast(wdn, Protein + Peptide + Charge ~ Mixture + Channel, value.var = "Intensity")
     cols.ch <- c("Protein","Peptide","Charge")
-    cols <- names(work.nrm.w[,-cols.ch, with=FALSE])
+    cols <- names(wdn.w[,-cols.ch, with=FALSE])
   } else { # Fractions (Runs) are not combined
-    work.nrm.w  <- data.table::dcast(work.nrm, Protein + Peptide + Charge + Run ~ Mixture + Channel, value.var = "Intensity")
+    wdn.w  <- data.table::dcast(wdn, Protein + Peptide + Charge + Run ~ Mixture + Channel, value.var = "Intensity")
     cols.ch <- c("Protein","Peptide","Charge", "Run")
-    cols <- names(work.nrm.w[,-cols.ch, with=FALSE])     
+    cols <- names(wdn.w[,-cols.ch, with=FALSE])     
   } 
   
   ## number of NAs per column and row
-  na.row <- work.nrm.w[, Reduce(`+`, lapply(.SD, function(x) is.na(x))), .SDcols=cols] #NA per row    table(na.row)
-  na.col <- work.nrm.w[, lapply(.SD, function(x) sum(is.na(x))), .SDcols = cols]       #NA per col    table(na.row)
+  na.row <- wdn.w[, Reduce(`+`, lapply(.SD, function(x) is.na(x))), .SDcols=cols] #NA per row    table(na.row)
+  na.col <- wdn.w[, lapply(.SD, function(x) sum(is.na(x))), .SDcols = cols]       #NA per col    table(na.row)
   
   ## apply VSN 
-  mat <- as.matrix(work.nrm.w[, cols, with=FALSE]) 
+  mat <- as.matrix(wdn.w[, cols, with=FALSE]) 
   fit <- vsn2(mat) 
   pred <- predict(fit, newdata = mat, useDataInFit = TRUE) 
   vsntest <-  meanSdPlot(pred, plot=FALSE)$gg
   
   as.data.table(pred) %>%
-    cbind(work.nrm.w[,cols.ch, with=FALSE],.) %>%
+    cbind(wdn.w[,cols.ch, with=FALSE],.) %>%
     melt(., id.vars = cols.ch,
          variable.name="factors",
          value.name="Abundance.norm") %>%
     .[, c("Mixture", "Channel") := tstrsplit(factors, "_", fixed=TRUE)] %>%
     .[,factors:=NULL] %>%
-    .[work.nrm, on=names(.)[!names(.) %in% "Abundance.norm"]] %>%
+    .[wdn, on=names(.)[!names(.) %in% "Abundance.norm"]] %>%
     .[,Intensity:=NULL] -> work
-  rm(work.nrm)
+  rm(wdn)
   
   return(work)
 }
