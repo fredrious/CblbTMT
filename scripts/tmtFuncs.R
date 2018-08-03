@@ -20,6 +20,7 @@
 ################################
 
 
+
 ###################################
 ## change Charachter and Integer columns to Factor
 char2fact <- function(dt){
@@ -37,14 +38,15 @@ int2fact <- function(dt){
 
 
 
+
 ################################
 ## function: median polish
-f.medpol <-  function(dw, para) {
-  clnm <- colnames(dw)
-  dw <- as.matrix(dw)
-  mp  <-  stats::medpolish(dw, na.rm=TRUE, trace.iter = FALSE)
+f.medpol <-  function(dws, para) {
+  clnm <- colnames(dws)
+  dw <- as.matrix(dws)
+  mp  <-  stats::medpolish(dws, na.rm=TRUE, trace.iter = FALSE, maxiter = 30)
   if (toupper(para)=="MEDRES") {
-    tmp <- mp$overall + apply(mp$residuals, 2, function(x) median(x, na.rm = TRUE)) # Abundance = overall median + median(residual)
+    tmp <- mp$overall + apply(mp$residuals, 2, function(x) mean(x, na.rm = TRUE)) # Abundance = overall median + mean(residual)
   } else { tmp <- mp$overall + mp$col } # Abundance = overall median + column effect
   result <- data.table(Channel=clnm, Abundance=tmp)
   res <- mp$residual
@@ -52,30 +54,31 @@ f.medpol <-  function(dw, para) {
 }
 
 
-MedPolAll <- function(dw) {
-  work.w <- data.table::dcast(work, Protein + Peptide + Charge + Run ~ Mixture + Channel, value.var = "Abundance")
-  cols <- names(work.w)[(!colnames(work.w) %in% c("Protein", "Peptide", "Charge", "Run"))]
-  work.mp  <- work.w[ , f.medpol(.SD, para=MPpara)[[1]] , by = .(Protein), .SDcols= cols  ]   # MPpara = "coleff" or "medres"
-  work.mp[, c("Mixture", "Channel") := tstrsplit(Channel, "_",  fixed=TRUE)]
+MedPolAll <- function(dw, MPpara="coleff") {
+  dw.w <- data.table::dcast(dw, Protein + Peptide + Charge ~ Mixture + Channel, value.var = "Abundance")
+  cols <- names(dw.w)[(!colnames(dw.w) %in% c("Protein", "Peptide", "Charge", "Run"))]
+  dw.mp  <- dw.w[ , f.medpol(.SD, para=MPpara)[[1]] , by = .(Protein), .SDcols= cols  ]   # MPpara = "coleff" or "medres"
+  dw.mp[, c("Mixture", "Channel") := tstrsplit(Channel, "_",  fixed=TRUE)]
   # work.mp$MPmethod <- "allMix"
-  return(work.mp)
+  return(dw.mp)
 }
 
 
-MedPolInd <- function(dw) {
-  work.w <- data.table::dcast(work, Protein + Peptide + Charge + Mixture ~ Channel, value.var = "Abundance")
-  cols <- names(work.w)[(!colnames(work.w.ind) %in% c("Protein", "Peptide", "Charge", "Mixture"))]
-  work.mp <- work.w[ , f.medpol(.SD, para=MPpara)[[1]] , by = .(Protein, Mixture), .SDcols= cols  ]   # MPpara = "coleff" or "medres"
+MedPolInd <- function(dw, MPpara="coleff") {
+  dw.w <- data.table::dcast(dw, Protein + Peptide + Charge + Mixture ~ Channel, value.var = "Abundance")
+  cols <- names(dw.w)[(!colnames(dw.w) %in% c("Protein", "Peptide", "Charge", "Mixture"))]
+  dw.mp <- dw.w[ , f.medpol(.SD, para=MPpara)[[1]] , by = .(Protein, Mixture), .SDcols= cols  ]   # MPpara = "coleff" or "medres"
   # work.mp$MPmethod <- "indMix"
-  return(work.mp)
+  return(dw.mp)
 }
 ################################
+
 
 
 
 ################################
 ## VSN normalization
-VSNnorm <-  function(wdn) {
+VSNnorm <-  function(wdn, calib) {
   
   wdn[, Intensity := 2^Abundance]
   if (toupper(FractComb) != "NONE") { # Fractions (Runs) are combined, continue with Mixtures
@@ -88,28 +91,23 @@ VSNnorm <-  function(wdn) {
     cols <- names(wdn.w[,-cols.ch, with=FALSE])     
   } 
   
-  ## number of NAs per column and row
-  na.row <- wdn.w[, Reduce(`+`, lapply(.SD, function(x) is.na(x))), .SDcols=cols] #NA per row    table(na.row)
-  na.col <- wdn.w[, lapply(.SD, function(x) sum(is.na(x))), .SDcols = cols]       #NA per col    table(na.row)
-  
   ## apply VSN 
   mat <- as.matrix(wdn.w[, cols, with=FALSE]) 
-  fit <- vsn2(mat) 
+  fit <- vsn2(mat, calib=calib) 
   pred <- predict(fit, newdata = mat, useDataInFit = TRUE) 
-  vsntest <-  meanSdPlot(pred, plot=FALSE)$gg
+  vsntest <-  meanSdPlot(pred, plot=FALSE)$gg + theme_bw() +  scale_fill_distiller(palette = "Spectral") 
   
   as.data.table(pred) %>%
     cbind(wdn.w[,cols.ch, with=FALSE],.) %>%
     melt(., id.vars = cols.ch,
          variable.name="factors",
-         value.name="Abundance.norm") %>%
+         value.name="Abundance") %>%
     .[, c("Mixture", "Channel") := tstrsplit(factors, "_", fixed=TRUE)] %>%
-    .[,factors:=NULL] %>%
-    .[wdn, on=names(.)[!names(.) %in% "Abundance.norm"]] %>%
-    .[,Intensity:=NULL] -> work
-  rm(wdn)
+    .[, factors := NULL] %>%
+    .[wdn, on=names(.)[!names(.) %in% "Abundance"]] %>%
+    .[, Intensity := NULL] -> work
   
-  return(work)
+  return(list(work, vsntest))
 }
 ################################
 
