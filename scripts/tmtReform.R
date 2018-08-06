@@ -158,6 +158,25 @@ psm.ready$Gene <- ifelse(!is.na(psm.ready$Genetmp), psm.ready$Genetmp, psm.ready
   psm.ready <- merge(psm.ready, tmp, by=c("Fraction","Mixture"), all.x = TRUE)
   
 
+  
+  ################################################################# 
+  ## replace wt and cblb tags in mix2
+  revType <- function(dt) {
+    dt[, c("typ", "tme" ) := tstrsplit(Condition, ".",  fixed=TRUE)]
+    dt[Mixture ==2 & typ == "WT", typ := "__Cblb"]
+    dt[Mixture ==2 & typ == "Cblb", typ := "WT"]
+    dt$typ <- gsub("__", "" ,dt$typ)
+    dt[, Condition := do.call(paste, c(.SD, sep = ".")), .SDcols=c("typ", "tme")]
+    dt <- char2fact(dt)
+    return(dt)
+  }
+  
+  psm.ready <- revType(psm.ready)        
+  # work <- revType(work)        
+  
+  ################################################################# 
+  
+  
  # RawBox <- 
  #  ggplot(psm.ready, aes(x=Fraction, y=Abundance0, col=Condition)) + 
  #    geom_boxplot() +

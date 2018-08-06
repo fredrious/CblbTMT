@@ -1,31 +1,5 @@
 
 
-pBox <- function(wt, x, y, col, ...) {
-  gp <- 
-    ggplot(wt, aes_string(x=x, y=y, col=col)) + 
-    geom_boxplot() +
-    scale_color_brewer(palette = "Dark2") + 
-    theme_bw() + 
-    facet_wrap(~Mixture, scales = "free_x") +
-    theme(legend.position = "none") +
-    ggtitle(y)
-  return(gp)
-  }
-
-
-pDen <- function(wt, x, col, ...) {
-  gp <- 
-    ggplot(wt, aes_string(x=x, col=col)) + 
-    geom_density(aes(linetype = Frac.i)) +    
-    scale_color_brewer(palette = "Dark2") + 
-    theme_bw() + 
-    facet_wrap(~Mixture) +
-    theme(legend.position = "none") +
-    ggtitle(x) + 
-    xlim(0,12)
-  return(gp)
-}
-
 
 # rm(list=ls())
 setwd("/Users/farhad/_Rspace/_prj_Wolf_Isabelle/")
@@ -48,11 +22,9 @@ source(file="scripts/tmtReform.R")
 # meas.arr <- c("old" ,"new")                   ## Which measurement
 betweenFracNorm.arr <- c("median", "quantile", "none")
 betweenChnNorm.arr = c("median","vsn", "qntVSN.noCal", "medVSN.noCal")
-vsn.Abund.arr <- c("Abundance.qntlFrcChn", "Abundance.med")
-vsn.Calib.arr <- c("none", "affine")
 
 
-Frac10.arr = c(TRUE) 
+Frac10.arr = c(TRUE, FALSE) 
 PSM2PPT.arr = c(FALSE)                  ## PSM to Peptide (Ratio > Median) 
 FractComb.arr <-  c("max", "sum", "single")      ## single with VSN::Strata and VSN, max after MedianEq per Mix + Fract
 remMix2.arr <- c(FALSE, TRUE)                 ## remove mixture 2 or not (high missingness in mix2)
@@ -72,52 +44,74 @@ minPptMIX.arr <- c(1,2)                       ## minimum number of Peptide in ea
 
 
 
-## Constatnt parameters for version chack
+# Constatnt parameters for version chack
 betweenFracNorm = "none"
 betweenChnNorm = "vsn"
-
-vsn.Calib <- "none"
-
-Frac10 = TRUE
+vsn.Calib <- "affine"
+Frac10 = c(TRUE, FALSE)
 PSM2PPT <- FALSE
 MPpara <-  "coleff"
 medpolON <-  "allMix"
 allChannelsIn <- FALSE
 whichPSM <- "med"
-remMix2 <- FALSE      
-minPptMIX <- 1
-FractComb <- "max"
+# remMix2 <- FALSE      
+minPptMIX <- 0
+# FractComb <- "max"
 onlySharedPRT <- FALSE
 onlySharedFEAT <- FALSE
-# mix3rev <- TRUE
+TopNperc <-  5 
 
 
+key.dt <- data.table(NULL)
+
+for (ix in 1:length(Frac10.arr)) {
+for (jx in 1:length(FractComb.arr)) {
+for (kx in 1:length(allChannelsIn.arr)) {
+for (lx in 1:length(remMix2.arr)) {
+# for (mx in 1:length(onlySharedPRT.arr)) {
+for (nx in 1:length(minPptMIX.arr)) {
+for (px in 1:length(betweenFracNorm.arr)) {
+for (qx in 1:length(betweenChnNorm.arr)) {
+        
+    
+    Frac10 <- Frac10.arr[ix]
+    FractComb <- FractComb.arr[jx]
+    allChannelsIn <- allChannelsIn.arr[kx]
+    remMix2 <- remMix2.arr[lx]
+    # onlySharedPRT <- onlySharedPRT.arr[mx]
+    minPptMIX <- minPptMIX.arr[nx]
+    betweenFracNorm <- betweenFracNorm.arr[px]
+    betweenChnNorm <- betweenChnNorm.arr[qx]
+    
+    
+    keytag <- paste(c(ix, jx, kx, lx, nx, px, qx), collapse = ".") 
+    key.tmp <- data.table(keytag = keytag,
+                          Frac10 = Frac10[ix],
+                          FractComb = FractComb.arr[jx],
+                          allChannelsIn = allChannelsIn.arr[kx],
+                          remMix2 = remMix2.arr[lx],
+                          # onlySharedPRT = onlySharedPRT.arr[mx],
+                          minPptMIX = minPptMIX.arr[nx],
+                          betweenFracNorm = betweenFracNorm.arr[px],
+                          betweenChnNorm = betweenChnNorm.arr[qx]
+                          )
+    
+ 
+    savePhrase <- paste0( keytag,"__Frac10_",Frac10,"__Frac_",FractComb,
+                          "__rmNAch_",allChannelsIn,
+                          "__rmM2_",remMix2,
+                          "__minPpt_",minPptMIX, "__FracNrm_", betweenFracNorm, 
+                          "__ChnNrm_", betweenChnNorm) 
+    
+    savePhrase <- gsub("TRUE","T", savePhrase)
+    savePhrase <- gsub("FALSE","F", savePhrase)
+    key.dt <- rbind(key.dt, key.tmp)
+    
+    print(key.tmp)
+  
+    
 
 
-# for (ix in 1:length(Frac10.arr)) {
-# for (jx in 1:length(FractComb.arr)) {
-# for (kx in 1:length(remMix2.arr)) {
-for (lx in 1:length(allChannelsIn.arr)) {
-  # for (mx in 1:length(medpolON.arr)) {
-  # for (nx in 1:length(whichPSM.arr)) {
-  # for (px in 1:length(onlySharedPRT.arr)) {
-  for (qx in 1:length(minPptMIX.arr)) {
-    
-    
-    # Frac10 <- Frac10[ix]
-    # FractComb <- FractComb.arr[jx]
-    # remMix2 <- remMix2.arr[kx]
-    allChannelsIn <- allChannelsIn.arr[lx]
-    # medpolON <- medpolON[mx]
-    # whichPSM <- whichPSM.arr[nx]
-    # onlySharedPRT <- onlySharedPRT.arr[px]
-    minPptMIX <- minPptMIX.arr[qx]
-    
-    
-    
-    
-    
-    
     ## initiating work data set from PSM data set
     work0 <- psm.ready[, list(Frac.i, Run, Channel, Protein, Peptide, Feature, 
                           Charge, Proptide, Condition, BioReplicate, 
@@ -241,29 +235,21 @@ for (lx in 1:length(allChannelsIn.arr)) {
       }      
               
       
-          sctPlot <- ## scatterpolt median v. quantile
-              ggplot(work1. , aes(Abundance, Abundance0)) + 
-                stat_binhex(aes(alpha=..count.., fill=Condition)) +
-                geom_abline(intercept = 0, slope = 1, col="darkred", alpha=0.6) +
-                # geom_smooth(se = FALSE, method = lm, alpha=0.2, size=0.5, aes(col=Condition)) +
-                theme_bw() + facet_wrap(~Frac.i) + coord_fixed()
-                
-              
     } else {
       work1.[, Abundance := Abundance0]
     }
     
-    
+    work1. <- work1.[,-c("medFrac")]
     
     
     ########################################################
     ################################### work summary before combination    
     ## NAs per condition, mixture and rep
-    NAcond1 <- work1.[, c( .(NA.N = sum(is.na(Abundance)) ),
-                          .(NA.Perc = length(Abundance)) ), 
-                     by = list(Mixture, BioReplicate, Condition)] 
-    NAcond1[, NA.Perc := round(NA.N/NA.Perc, 4)*100 ]
-    NAcond1[, FracComb. := "Frac. not Combined" ]
+    # NAcond1 <- work1.[, c( .(NA.N = sum(is.na(Abundance)) ),
+    #                       .(NA.Perc = length(Abundance)) ), 
+    #                  by = list(Mixture, BioReplicate, Condition)] 
+    # NAcond1[, NA.Perc := round(NA.N/NA.Perc, 4)*100 ]
+    # NAcond1[, FracComb. := "Frac. not Combined" ]
     
     
     
@@ -272,20 +258,20 @@ for (lx in 1:length(allChannelsIn.arr)) {
       work2 <- copy(work1.)
       sharedPSM.Mix <- work2[, c(.(cnt = uniqueN(Run))), by = list(Feature, Mixture)] #table(sharedPSM.Mix$cnt)
             
-            ###### plots
-            ## distribution of PSMs over fractions -- plot
-            sharedPSM.dt <- as.data.table(table(sharedPSM.Mix$cnt))
-            sharedPSM.dt[, perc := round(N/sum(N),4)*100 ]
-            sharedPSM.dt[, txt := paste0("#",N,"\n" ,perc,"%")]
-            
-            MultFrac <- 
-              ggplot(sharedPSM.dt, aes(x=as.integer(V1), y=N)) + 
-              geom_bar(stat= "identity") + 
-              geom_text(col="red", vjust=-0.3, aes(label=txt)) +
-              scale_x_discrete(name ="Fractions count", limits=sharedPSM.dt$V1) +
-              labs(title = "How many PSMs measured in how many Fractions!", y = "PSM count")  +
-              scale_y_continuous(limits=c(0,85000))
-            ######
+            # ###### plots
+            # ## distribution of PSMs over fractions -- plot
+            # sharedPSM.dt <- as.data.table(table(sharedPSM.Mix$cnt))
+            # sharedPSM.dt[, perc := round(N/sum(N),4)*100 ]
+            # sharedPSM.dt[, txt := paste0("#",N,"\n" ,perc,"%")]
+            # 
+            # MultFrac <- 
+            #   ggplot(sharedPSM.dt, aes(x=as.integer(V1), y=N)) + 
+            #   geom_bar(stat= "identity") + 
+            #   geom_text(col="red", vjust=-0.3, aes(label=txt)) +
+            #   scale_x_discrete(name ="Fractions count", limits=sharedPSM.dt$V1) +
+            #   labs(title = "How many PSMs measured in how many Fractions!", y = "PSM count")  +
+            #   scale_y_continuous(limits=c(0,85000))
+            # ######
             
             
     if (toupper(FractComb) != "NONE") {
@@ -296,7 +282,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
         work2 <- copy(wch0)
       } else {
         
-        wch  <- work2[sharedPSM.Mix[cnt>1,], on=c("Feature", "Mixture")]  #redundant measurements
+        wch  <- work2[sharedPSM.Mix[cnt>1,], on=c("Feature", "Mixture")][,-"cnt"]  #redundant measurements
         
             if (toupper(FractComb) != "SUM") {
               
@@ -336,16 +322,12 @@ for (lx in 1:length(allChannelsIn.arr)) {
         
         if (toupper(FractComb) == "SUM") { 
           
-          wch.sum <- wch[, c(.(Abundance = sum(Abundance))), by = c("Channel", "Mixture", "Feature", "Protein")] 
-          wch <- wch[, -c("Run", "Frac.i", "medFrac","Abundance.med","Abundance.qntlFrc",
-                          "Abundance.qntlFrcChn", "cnt", "Abundance", "Abundance0")]
-          wch0 <- wch0[, -c("Run", "Frac.i", "medFrac","Abundance.med","Abundance.qntlFrc",
-                            "Abundance.qntlFrcChn", "Abundance0")]
+          wch.sum <- unique(wch[, c(.(Abundance = sum(Abundance))), by = c("Channel", "Mixture", "Feature", "Protein")])
+          wch <- unique(wch[, -c("Run", "Frac.i", "Abundance", "Abundance0")])
+          wch0 <- wch0[, -c("Run", "Frac.i")]
+          wch.sum <- unique(wch[wch.sum, on=c("Protein","Feature","Mixture", "Channel")] )
           
-          wch <- unique(wch)
-          wch.sum <- wch[wch.sum, on=c("Protein","Feature","Mixture", "Channel")] 
-          
-          work2 <- rbindlist(list(wch0, wch.sum ))
+          work2 <- rbind(wch0[,-c("Abundance0")], wch.sum )
         }  ## end sum
         
       } # end FractComb: SINGLE
@@ -354,6 +336,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
       work2 <- copy(work1) 
     }
     
+    work2 <- work2[,-c("Abundance0", "Run", "Frac.i")]
     
     ########################################################
     ################################### remove Features with only NAs in all channels
@@ -365,25 +348,25 @@ for (lx in 1:length(allChannelsIn.arr)) {
             ########################################################
             ################################### work summary after combination
             ## NAs per condition, mixture and rep
-            NAcond3 <- work3[ , c( .(NA.N = sum(is.na(Abundance))),
-                                   .(NA.Perc = round(sum(is.na(Abundance))/uniqueN(Feature), 4)*100 ),
-                                   .(cnt.Peptide = uniqueN(Peptide)),
-                                   .(cnt.Protein = uniqueN(Protein)),
-                                   .(cnt.Feature = uniqueN(Feature)) ),
-                              by = list(Mixture, BioReplicate, Condition)] 
-            NAcond3[, FracComb. := "Frac. Combined" ]
-            NAcond.dt <- data.table::melt(NAcond3, id.vars =  c("Mixture", "BioReplicate", "Condition","FracComb."),
-                                          variable.name="Para", 
-                                          value.name="Val")
-            
-            
-            perCondPlot <-
-              ggplot(NAcond.dt, aes(x=Condition, y=Val, fill=Mixture, label=Val)) + 
-              facet_grid(Para ~ BioReplicate, scales = "free") +
-              geom_bar(stat= "identity") + 
-              geom_text(col="black", vjust=0.6, hjust=0.8, angle = 45, size=3.5) +
-              theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
-              scale_fill_brewer(palette = "Paired") 
+            # NAcond3 <- work3[ , c( .(NA.N = sum(is.na(Abundance))),
+            #                        .(NA.Perc = round(sum(is.na(Abundance))/uniqueN(Feature), 4)*100 ),
+            #                        .(cnt.Peptide = uniqueN(Peptide)),
+            #                        .(cnt.Protein = uniqueN(Protein)),
+            #                        .(cnt.Feature = uniqueN(Feature)) ),
+            #                   by = list(Mixture, BioReplicate, Condition)] 
+            # NAcond3[, FracComb. := "Frac. Combined" ]
+            # NAcond.dt <- data.table::melt(NAcond3, id.vars =  c("Mixture", "BioReplicate", "Condition","FracComb."),
+            #                               variable.name="Para", 
+            #                               value.name="Val")
+            # 
+            # 
+            # perCondPlot <-
+            #   ggplot(NAcond.dt, aes(x=Condition, y=Val, fill=Mixture, label=Val)) + 
+            #   facet_grid(Para ~ BioReplicate, scales = "free") +
+            #   geom_bar(stat= "identity") + 
+            #   geom_text(col="black", vjust=0.6, hjust=0.8, angle = 45, size=3.5) +
+            #   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
+            #   scale_fill_brewer(palette = "Paired") 
             ######
     
     
@@ -393,21 +376,21 @@ for (lx in 1:length(allChannelsIn.arr)) {
 
       cnt.work3 <- work3[, c(.(cnt = sum(!is.na(Abundance)))), by = list(Mixture, Protein, Feature)] 
       
-                fullCHN <- as.data.table(table(cnt.work3[, list(Mixture,cnt)])) ## missingness per feature per mixture
-                fullCHN[, ttl := sum(N), by=Mixture ]
-                fullCHN[, Percentage := round(100*N/ttl,2) ]
-                fullCHN[, txt := paste0("#",N,"\n" ,perc,"%")]
-                
-                MultChnnl <- 
-                  ggplot(fullCHN, aes(x=cnt, y=Percentage, fill = Mixture)) + 
-                  geom_bar(stat= "identity", position="dodge") + 
-                  geom_text(vjust=0.3, aes(label=Percentage), size=4, angle=90, position = position_dodge(width = 1)) +
-                  scale_x_discrete(name ="Channel-count", limits=fullCHN$V1) +
-                  scale_fill_brewer(palette = "Paired") +
-                  labs(title = paste0(
-                    "Count/Percentage of Features vs. number of non NA measurements per Mixture.\n",
-                    "Value of 6 means that all Channels of a given Feature have non NA values."), 
-                    y = "PSM count")  
+                # fullCHN <- as.data.table(table(cnt.work3[, list(Mixture,cnt)])) ## missingness per feature per mixture
+                # fullCHN[, ttl := sum(N), by=Mixture ]
+                # fullCHN[, Percentage := round(100*N/ttl,2) ]
+                # fullCHN[, txt := paste0("#",N,"\n" ,perc,"%")]
+                # 
+                # MultChnnl <- 
+                #   ggplot(fullCHN, aes(x=cnt, y=Percentage, fill = Mixture)) + 
+                #   geom_bar(stat= "identity", position="dodge") + 
+                #   geom_text(vjust=0.3, aes(label=Percentage), size=4, angle=90, position = position_dodge(width = 1)) +
+                #   scale_x_discrete(name ="Channel-count", limits=fullCHN$V1) +
+                #   scale_fill_brewer(palette = "Paired") +
+                #   labs(title = paste0(
+                #     "Count/Percentage of Features vs. number of non NA measurements per Mixture.\n",
+                #     "Value of 6 means that all Channels of a given Feature have non NA values."), 
+                #     y = "PSM count")  
       
     if (allChannelsIn) {
       work3 <- work3[cnt.work3[cnt == 6, -"cnt"], on=c("Protein", "Mixture", "Feature")]
@@ -450,24 +433,25 @@ for (lx in 1:length(allChannelsIn.arr)) {
     
 
       
-      ################################################################# 
-      ## NA count per condition per Mixture   
-      work3.w  <- data.table::dcast(work3[,-c("Abundance0")], Protein + Peptide + Charge ~ Mixture + Channel, value.var = "Abundance")
-      cols.ch <- c("Protein","Peptide","Charge")
-      cols <- names(work3.w[,-cols.ch, with=FALSE])
-      ## number of NAs per column and row
-      na.col <- work3.w[, lapply(.SD, function(x) sum(is.na(x))), .SDcols = cols]       #NA per col    table(na.col)
-      na.col <- melt(na.col, variable.name = "Run", value.name = "NA.count", verbose = FALSE)
-      na.col[, c("Mixture", "Channel") := tstrsplit(Run, "_",  fixed=TRUE)]
-      na.col <- na.col[unique(work3[,c("Mixture","Channel","Condition", "BioReplicate")]) , on=c("Mixture","Channel")]
-  
-      NAcntBar <-
-        ggplot(na.col, aes(x=Condition, y=NA.count, col=Condition)) +
-        scale_color_brewer(palette = "Dark2") +
-        theme_bw() +
-        # geom_bar(aes(y = (..count..)/sum(..count..)))
-        geom_bar(stat="identity",position = "dodge2") +
-        facet_wrap(~Mixture, scales = "free_x")
+      # ################################################################# 
+      # ## NA count per condition per Mixture   
+      # work3.w  <- data.table::dcast(work3, Protein + Peptide + Charge ~ Mixture + Channel, value.var = "Abundance")
+      # cols.ch <- c("Protein","Peptide","Charge")
+      # cols <- names(work3.w[,-cols.ch, with=FALSE])
+      # ## number of NAs per column and row
+      # na.col <- work3.w[, lapply(.SD, function(x) sum(is.na(x))), .SDcols = cols]       #NA per col    table(na.col)
+      # na.col <- melt(na.col, variable.name = "Run", value.name = "NA.count", verbose = FALSE)
+      # na.col[, c("Mixture", "Channel") := tstrsplit(Run, "_",  fixed=TRUE)]
+      # na.col <- na.col[unique(work3[,c("Mixture","Channel","Condition", "BioReplicate")]) , on=c("Mixture","Channel")]
+      # 
+      # NAcntBar <-
+      #   ggplot(na.col, aes(x=Condition, y=NA.count, col=Condition)) +
+      #   scale_color_brewer(palette = "Dark2") +
+      #   theme_bw() +
+      #   # geom_bar(aes(y = (..count..)/sum(..count..)))
+      #   geom_bar(stat="identity",position = "dodge2") +
+      #   facet_wrap(~Mixture, scales = "free_x") +
+      #   theme(axis.text.x = element_text(angle = 90, vjust = 0.5), legend.position="right") 
       
       
       
@@ -478,7 +462,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
       
       if ( toupper(betweenChnNorm) == "VSN") { ## VSN normalization  
         
-        vsnOut <- VSNnorm(work3., calib = vsn.Calib) ## vsn.Calib = "affine" , "none"
+        vsnOut <- VSNnorm(work3., calib = "affine") ## vsn.Calib = "affine" , "none"
             work    <- vsnOut[[1]] ## dataset with vsn abundance
             vsnTest <- vsnOut[[2]] ## rank mean v. SD from VSN
             work <- char2fact(work)
@@ -523,34 +507,31 @@ for (lx in 1:length(allChannelsIn.arr)) {
         
       if ( toupper(betweenChnNorm) == "MEDIAN") { ## median normalization
         
-        medFrac <- work3[, .(medFrac = median(Abundance, na.rm=TRUE)), by = c("Mixture", "Channel")]
-        work <- merge(work3, medFrac, by= c("Mixture", "Channel"), all.x=TRUE)
+        medFrac <- work3.[, .(medFrac = median(Abundance, na.rm=TRUE)), by = c("Mixture", "Channel")]
+        work <- merge(work3., medFrac, by= c("Mixture", "Channel"), all.x=TRUE)
+        work[, i.Abundance := Abundance]
         work[, Abundance := Abundance - medFrac + median(medFrac, na.rm=TRUE)]
+        
+        mat.w <- dcast(work, Protein + Peptide + Charge ~ Mixture + Channel, value.var = "Abundance")
+        mat <- as.matrix(mat.w[,-c("Protein","Peptide","Charge")]) 
+        vsnTest <- meanSdPlot(mat, plot=FALSE)$gg + theme_bw() +  scale_fill_distiller(palette = "Spectral") 
       }     
       
       
     ################################################################# 
-        
-        
-      pDen.chnMed <- pDen(work, x="Abundance", col="Condition")
-      pBox.chnMed <- pBox(work, x="Run", y="Abundance", col="Condition")  
+       
+      sctPlot <- ## scatterpolt median v. quantile
+        ggplot(work , aes(Abundance, i.Abundance)) + 
+        stat_binhex(aes(alpha=..count.., fill=Condition)) +
+        geom_abline(intercept = 0, slope = 1, col="darkred", alpha=0.6) +
+        # geom_smooth(se = FALSE, method = lm, alpha=0.2, size=0.5, aes(col=Condition)) +
+        theme_bw() + facet_wrap(~Mixture) + coord_fixed()
       
         
-        # pDen.qnt <- pDen(work, x="Abundance.qntlFrcChn", col="Condition")
-        # pDen.med <- pDen(work, x="Abundance.med", col="Condition")
-        # pDen.vsn <- pDen(work, x=vsnAbn, col="Condition")  
-        # 
-        # vsnAbn <- names(work)[which(names(work) %like% "vsn")]
-        # pBox.vsn <- pBox(work, x="Run", y=vsnAbn, col="Condition")  
-        # pBox.med <- pBox(work, x="Run", y="Abundance.med", col="Condition")  
-        # pBox.qnt <- pBox(work, x="Run", y="Abundance.qntlFrcChn", col="Condition")  
-        # 
-        # g <- arrangeGrob(pDen.qnt, pBox.qnt , pDen.med, pBox.med,
-        #              pDen.vsn, pBox.vsn, ncol = 2)
-        # 
-        # ggsave(file="whatever.pdf", g)
-        
-            
+      pDen.chnMed <- pDen(work, x="Abundance", col="Condition")
+      pBox.chnMed <- pBox(work, x="Condition", y="Abundance", col="BioReplicate")  
+      
+      
     ################################################################# 
     ## Median Polish 
     # median polish over all mixture at once
@@ -570,24 +551,8 @@ for (lx in 1:length(allChannelsIn.arr)) {
       unique(work[, list(Gene, Protein, Mixture, Channel, Condition, BioReplicate)]),
       on=c("Protein", "Mixture", "Channel")]
 
-    ################################################################# 
-    ## replace wt and cblb tags in mix2
-      revType <- function(dt) {
-        dt[, c("typ", "tme" ) := tstrsplit(Condition, ".",  fixed=TRUE)]
-        dt[Mixture ==2 & typ == "WT", typ := "__Cblb"]
-        dt[Mixture ==2 & typ == "Cblb", typ := "WT"]
-        dt$typ <- gsub("__", "" ,dt$typ)
-        dt[, Condition := do.call(paste, c(.SD, sep = ".")), .SDcols=c("typ", "tme")]
-        dt <- char2fact(dt)
-        return(dt)
-      }
-        
-      workf <- revType(workf)        
-      work <- revType(work)        
-      
-    ################################################################# 
-    
-    
+
+          
       # test some proteins
       ################################################################# 
       # dd <- work[Protein=="Q64287"]
@@ -612,7 +577,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
     
     ## plot volcano
     volc.all <- volc.p.all(fitList)
-    # volc.ind <- volc.p.ind(fitList, top=topList)
+    volc.ind <- volc.p.ind(fitList, top=topList)
     ################################################################# 
     
     
@@ -707,7 +672,7 @@ for (lx in 1:length(allChannelsIn.arr)) {
     hmOut.WtKo <- hmap.plot(hm.matWtKo, reftb=heatmap.mat(hm.proteinWtKo)[[2]])
 
     hmOutFIX.WtKo24 <- hmap.plot(hm.FIX.WtKo24, reftb=heatmap.mat(prtFIX.WtKo24)[[2]])
-    hmOutFIX.WtKo <- hmap.plot(hm.FIX.WtKo, reftb=heatmap.mat(prtFIX.WtKo)[[2]])
+    rm <- hmap.plot(hm.FIX.WtKo, reftb=heatmap.mat(prtFIX.WtKo)[[2]])
     ################################################################# 
     
     
@@ -720,17 +685,12 @@ for (lx in 1:length(allChannelsIn.arr)) {
     #                         "__MedPol_",medpolON,"__measurements_",meas,
     #                         "__rmMix2_",remMix2, "__onlySharedPRT_",onlySharedPRT,
     #                         "__minPptMIX_",minPptMIX, "__betweenFracNorm_", MedNorm)
-    # } else {
-      savePhrase <- paste0( "__FracComb_",FractComb,
-                            "__rmNAchnnl_",allChannelsIn,"__whichPSM_",whichPSM,
-                            "__MedPol_",medpolON,"__measurements_",meas,
-                            "__rmMix2_",remMix2, "__onlySharedPRT_",onlySharedPRT,
-                            "__minPptMIX_",minPptMIX, "__betweenFracNorm_", betweenFracNorm)
-    # }
+    # } 
+
     
     ## heatmaps
-    write.csv(topList, file = paste0(adir,"/loop_all/limmaTops/topTable_limma", savePhrase, ".csv"))
-    write.csv(fitList, file = paste0(adir,"/loop_all/limmaFits/fitList_limma", savePhrase, ".csv"))
+    write.csv(topList, file = paste0(adir,"/loop_all/limmaTops/Top_", savePhrase, ".csv"))
+    write.csv(fitList, file = paste0(adir,"/loop_all/limmaFits/Fit_", savePhrase, ".csv"))
 
 
     pdf(paste0(adir,"/loop_all/heatmap/hmapALL_",savePhrase,".pdf"), width = 16, height = 12)
@@ -754,11 +714,11 @@ for (lx in 1:length(allChannelsIn.arr)) {
     
     
     ## volcano
-    pdf(paste0(adir,"/loop_all/volcano/volcano_all_",savePhrase,".pdf"), width = 17, height = 14)
+    pdf(paste0(adir,"/loop_all/volcano/volc_all_",savePhrase,".pdf"), width = 17, height = 14)
     print(volc.all)
     dev.off()
     
-    pdf(paste0(adir,"/loop_all/volcano/volcano_ind_",savePhrase,".pdf"), width = 12, height = 8)
+    pdf(paste0(adir,"/loop_all/volcano/volc_ind_",savePhrase,".pdf"), width = 12, height = 8)
     print(volc.ind)
     dev.off()   
     
@@ -769,13 +729,34 @@ for (lx in 1:length(allChannelsIn.arr)) {
     dev.off()
     
     
+    ## QC
+    glist2 <- arrangeGrob(
+      grobs = list(sctPlot, pDen.chnMed, pBox.chnMed, vsnTest),
+      # widths = c(2,2,2,1),
+      layout_matrix = rbind(c(1,1),
+                            c(2,2),
+                            c(3,3),
+                            c(4,NA))
+    )
+    pdf(paste0(adir,"/loop_all/versQC/QC_",savePhrase,".pdf"), width = 7, height = 12)
+    plot(glist2)
+    dev.off()
     
-  }
-}
-}
-}
-}
-}
-#   }
-# }
+    # glist1 <- arrangeGrob(
+    #   grobs = list(MultFrac, MaxFrac, MultChnnl, perCondPlot, NAcntBar),
+    #   # widths = c(2,2,2,1),
+    #   layout_matrix = rbind(c(1,2),
+    #                         c(3,4),
+    #                         c(5,NA))
+    # )
+    # pdf(paste0(adir,"/loop_all/QC_plots.pdf"), width = 11, height = 14)
+    # plot(glist1)
+    # dev.off()
+    
+    
+    
+}}}}}}} 
+
+
+
 

@@ -88,7 +88,7 @@ statSig <- function(dt, TopNperc=5) {
   # # model by Condition + Mixture
   # contrast <- t(matrix(c(1,1,1,-1,-1,-1,0,0), nrow=1))
   rownames(contrast) <- colnames(fit$coefficients)
-  colnames(contrast) <- comp <- "WT-CBLB"
+  colnames(contrast) <- comp <- "WT-Cblb"
   
   fit2 <- contrasts.fit(fit, contrast)
   fit2 <- eBayes(fit2)

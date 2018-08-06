@@ -173,8 +173,8 @@ hmap.plot <- function(hm.mat0, reftb) {
                          # column_dend_height = unit(2, "cm"), 
                          row_dend_width = unit(2, "cm"),
                          na_col = "white", 
-                         clustering_distance_rows = "euclidean",
-                         clustering_distance_columns = "euclidean",
+                         clustering_distance_rows = "pearson",
+                         clustering_distance_columns = "pearson",
                          cluster_columns = clustCol,
                          # col = circlize::colorRamp2(c(3,7), c("darkblue", "yellow"))
                          col <- colorRampPalette(rev(brewer.pal(10, "RdYlBu")) )(256),
@@ -320,7 +320,7 @@ volc.p.ind <- function(ldt, top) {
   for (ix in 1:uniqueN(ldt$Comparison)) {
     
     subldt <- ldt[Comparison == unique(ldt$Comparison)[ix] ]
-    subtop <- top[Comparison == unique(ldt$Comparison)[ix] & id %in% 1:20]
+    subtop <- top[Comparison == unique(ldt$Comparison)[ix] & id %in% 1:30]
     
     subcntb <- cntb[Comparison == unique(cntb$Comparison)[ix] ]
       maxY <- round(max(-log10(subldt$P.Value), na.rm=TRUE) )
@@ -372,8 +372,10 @@ volc.p.ind <- function(ldt, top) {
         ggtitle(unique(subldt$Comparison)) 
       
       
-      sub <- subldt[adj.P.Val < 0.05 & abs(logFC) > 1 , ]
-      sub$side <- ifelse(sub$logFC < 0, -1, 1)
+      # sub <- subldt[adj.P.Val < 0.05 & abs(logFC) > 1 , ]
+      # sub$side <- ifelse(sub$logFC < 0, -1, 1)
+      subsub <- subldt[Protein %in% subtop$Protein, ]
+      subsub$side <- ifelse(subsub$logFC < 0, -1, 1)
       
         
         volcList[[ix]] <-  volcList[[ix]] +
@@ -391,27 +393,6 @@ volc.p.ind <- function(ldt, top) {
                          segment.alpha =1 ,
                          segment.colour = "grey30") 
         
-        volcList[[ix]] <-  volcList[[ix]] +
-          # geom_point(data= sub, size=3, mapping=aes(x=logFC, y = -log10(P.Value)),
-          #            color="black", stroke = 1, shape=0) +
-          geom_text_repel(data=sub, aes(label = Gene),
-                          force = 6,
-                          color = "darkred",
-                          show.legend = FALSE,
-                          # label.size = 0.05,
-                          alpha = 1,
-                          nudge_x = ifelse(sub$side == 1, 2.5, -2),
-                          # direction = "y",
-                          # point.padding = unit(0, "lines"),
-                          # box.padding = unit(0, "lines"),
-                          segment.alpha = 0.8 ,
-                          segment.colour = "grey") +
-          geom_point(data=subldt, aes(x=logFC, y = -log10(P.Value), colour = col), alpha=0.5, size=1.75) 
-        
-        
-        subsub <- subldt[Protein %in% subtop$Protein, ]
-        subsub$side <- ifelse(subsub$logFC < 0, -1, 1)
-        
         
   }
   return(volcList)
@@ -419,6 +400,34 @@ volc.p.ind <- function(ldt, top) {
 
 
 
+
+pBox <- function(wt, x, y, col, ...) {
+  gp <- 
+    ggplot(wt, aes_string(x=x, y=y, col=col)) + 
+    geom_boxplot() +
+    scale_color_brewer(palette = "Dark2") + 
+    theme_bw() + 
+    facet_wrap(~Mixture, scales = "free_x") +
+    # theme(legend.position = "none") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5), legend.position="none") 
+  
+  ggtitle(y)
+  return(gp)
+}
+
+
+pDen <- function(wt, x, col, ...) {
+  gp <- 
+    ggplot(wt, aes_string(x=x, col=col)) + 
+    geom_density(aes(linetype = Channel)) +    
+    scale_color_brewer(palette = "Dark2") + 
+    theme_bw() + 
+    facet_wrap(~Mixture) +
+    theme(legend.position = "none") +
+    ggtitle(x) + 
+    xlim(0,12)
+  return(gp)
+}
 
 
 
