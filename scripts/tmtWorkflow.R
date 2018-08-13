@@ -26,7 +26,7 @@ betweenChnNorm.arr = c("median","vsn", "qntVSN.noCal", "medVSN.noCal")
 
 Frac10.arr = c(TRUE, FALSE) 
 PSM2PPT.arr = c(FALSE)                  ## PSM to Peptide (Ratio > Median) 
-FractComb.arr <-  c("max", "sum", "single")      ## single with VSN::Strata and VSN, max after MedianEq per Mix + Fract
+FractComb.arr <-  c("max", "single")      ## single with VSN::Strata and VSN, max after MedianEq per Mix + Fract
 remMix2.arr <- c(FALSE, TRUE)                 ## remove mixture 2 or not (high missingness in mix2)
 allChannelsIn.arr <- c(TRUE, FALSE)           ## whether or not consider Features with complete Channel set
 MPpara.arr <-  c("coleff")           ## medianpolish:  MPpara=coleff --> Abundance = overall median + column effect
@@ -38,25 +38,29 @@ TopNperc <-  5                                ## Limma TopTable: top N percent h
 onlySharedPRT.arr <- c(TRUE, FALSE)           ## Reduce dataset to only shared Proteins between all Mixtures
 onlySharedFEAT <- c(TRUE, FALSE)
 
-minPptMIX.arr <- c(1,2)                       ## minimum number of Peptide in each Mixture
+minPptMIX.arr <- c(0,1,2)                       ## minimum number of Peptide in each Mixture
 # mix3rev.arr <- c(TRUE)                    
 
 
 
 
 # Constatnt parameters for version chack
-betweenFracNorm = "none"
-betweenChnNorm = "vsn"
-vsn.Calib <- "affine"
-Frac10 = c(TRUE, FALSE)
-PSM2PPT <- FALSE
-MPpara <-  "coleff"
-medpolON <-  "allMix"
+betweenFracNorm <-  "quantile"
+betweenChnNorm <-  "median"
+FractComb <- "max"
+Frac10 <- FALSE
 allChannelsIn <- FALSE
-whichPSM <- "med"
-# remMix2 <- FALSE      
+remMix2 <- FALSE
 minPptMIX <- 0
 # FractComb <- "max"
+# remMix2 <- FALSE      
+
+vsn.Calib <- "affine"
+whichPSM <- "med"
+MPpara <-  "coleff"
+medpolON <-  "allMix"
+whichPSM.arr <- c("med")                ## for the same PSM per run, mixture and channel
+PSM2PPT <- FALSE
 onlySharedPRT <- FALSE
 onlySharedFEAT <- FALSE
 TopNperc <-  5 
@@ -64,9 +68,9 @@ TopNperc <-  5
 
 key.dt <- data.table(NULL)
 
-for (ix in 1:length(Frac10.arr)) {
-for (jx in 1:length(FractComb.arr)) {
-for (kx in 1:length(allChannelsIn.arr)) {
+for (ix in 2:length(Frac10.arr)) {
+for (jx in 2:length(FractComb.arr)) {
+for (kx in 2:length(allChannelsIn.arr)) {
 for (lx in 1:length(remMix2.arr)) {
 # for (mx in 1:length(onlySharedPRT.arr)) {
 for (nx in 1:length(minPptMIX.arr)) {
@@ -86,7 +90,7 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     
     keytag <- paste(c(ix, jx, kx, lx, nx, px, qx), collapse = ".") 
     key.tmp <- data.table(keytag = keytag,
-                          Frac10 = Frac10[ix],
+                          Frac10 = Frac10.arr[ix],
                           FractComb = FractComb.arr[jx],
                           allChannelsIn = allChannelsIn.arr[kx],
                           remMix2 = remMix2.arr[lx],
@@ -106,12 +110,36 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     savePhrase <- gsub("TRUE","T", savePhrase)
     savePhrase <- gsub("FALSE","F", savePhrase)
     key.dt <- rbind(key.dt, key.tmp)
-    
     print(key.tmp)
   
+
+
     
+    
+    ######## for individual tags
+      tag <- "1.1.2.2.1.3.2"
+      key.tmp <- key.dt[keytag == tag]
+          keytag <- key.tmp$keytag
+          Frac10 <- key.tmp$Frac10
+          FractComb <- key.tmp$FractComb
+          allChannelsIn <- key.tmp$allChannelsIn
+          remMix2 <- key.tmp$remMix2
+          minPptMIX <- key.tmp$minPptMIX
+          betweenFracNorm <- key.tmp$betweenFracNorm
+          betweenChnNorm <- key.tmp$betweenChnNorm
+          savePhrase0 <- paste0( keytag,"__Frac10_",Frac10,"__Frac_",FractComb,
+                              "__rmNAch_",allChannelsIn,
+                              "__rmM2_",remMix2,
+                              "__minPpt_",minPptMIX, "__FracNrm_", betweenFracNorm,
+                              "__ChnNrm_", betweenChnNorm)
+          savePhrase <- gsub("TRUE","T", savePhrase0)
+          savePhrase <- gsub("FALSE","F", savePhrase0)
+    ######## for individual tags
 
-
+          
+          
+    
+    
     ## initiating work data set from PSM data set
     work0 <- psm.ready[, list(Frac.i, Run, Channel, Protein, Peptide, Feature, 
                           Charge, Proptide, Condition, BioReplicate, 
@@ -121,8 +149,12 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     ########################################################
     ## remove fractions 1 & 10 from all mixtures       
     if (Frac10) {
-    RunOut <- c("1.2", "1.3", "1.4", "10.2", "10.3", "10.4") 
-    work0 <- work0[!Run %in% RunOut]
+      if (toupper(betweenFracNorm) == "QUANTILE") {
+        RunOut <- c("1.2", "1.3", "1.4", "10.2", "10.3", "10.4", "4.2", "4.3", "4.4", "8.2", "8.3","8.4") 
+      } else {
+        RunOut <- c("1.2", "1.3", "1.4", "10.2", "10.3", "10.4") 
+      }
+      work0 <- work0[!Run %in% RunOut]
     }
     
     
@@ -336,8 +368,9 @@ for (qx in 1:length(betweenChnNorm.arr)) {
       work2 <- copy(work1) 
     }
     
-    work2 <- work2[,-c("Abundance0", "Run", "Frac.i")]
-    
+      # work2 <- work2[,-c("Abundance0", "Run", "Frac.i")]
+      work2 <- work2[,-c("Abundance0")]
+      
     ########################################################
     ################################### remove Features with only NAs in all channels
     cnt.work2 <- work2[, c(.(cnt = sum(!is.na(Abundance)))), by = list(Mixture, Protein, Feature)] 
@@ -528,8 +561,8 @@ for (qx in 1:length(betweenChnNorm.arr)) {
         theme_bw() + facet_wrap(~Mixture) + coord_fixed()
       
         
-      pDen.chnMed <- pDen(work, x="Abundance", col="Condition")
-      pBox.chnMed <- pBox(work, x="Condition", y="Abundance", col="BioReplicate")  
+      pDen.chnMed <- pDen(work, x="Abundance", col="Run")
+      pBox.chnMed <- pBox(work, x="Run", y="Abundance", col="Condition")  
       
       
     ################################################################# 
@@ -550,6 +583,7 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     workf <- work.mp[
       unique(work[, list(Gene, Protein, Mixture, Channel, Condition, BioReplicate)]),
       on=c("Protein", "Mixture", "Channel")]
+    workf <- char2fact(workf)
 
 
           
@@ -571,13 +605,15 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     ################################################################# 
     ## statistical analysis -- limma
     ## TopNperc = top N percent hits in topList ... default TopNperc = 5
-    limmaOut <- statSig(workf, TopNperc=5)
+    limmaOut <- statSig(workf, TopNperc=TopNperc)
     topList <- limmaOut[[1]]
     fitList <- limmaOut[[2]]
     
+    
+    
     ## plot volcano
     volc.all <- volc.p.all(fitList)
-    volc.ind <- volc.p.ind(fitList, top=topList)
+    volc.ind <- volc.p.ind(fitList, topList)
     ################################################################# 
     
     
@@ -618,15 +654,15 @@ for (qx in 1:length(betweenChnNorm.arr)) {
         # ## ...   __MedPol_allMix__measurements_new__rmMix2_FALSE__onlySharedPRT_FALSE__minPptMIX_1"
         #      prtFIX.WtKo24 <- data.table(Protein=topList[Comparison == "Cblb.24h-WT.24h", Protein][1:100])
         #      prtFIX.WtKo   <- data.table(Protein=topList[Comparison == "WT-CBLB", Protein][1:100])
-        #       write.csv(prtFIX.WtKo24, file = paste0(adir,"/loop_all/prtFIX_WtKo24_FracMax_minPep1.csv"))
-        #       write.csv(prtFIX.WtKo,   file = paste0(adir,"/loop_all/prtFIX_WtKo_FracMax_minPep1.csv"))
+        #       write.csv(prtFIX.WtKo24, file = paste0(adir,"loopAll/prtFIX_WtKo24_FracMax_minPep1.csv"))
+        #       write.csv(prtFIX.WtKo,   file = paste0(adir,"loopAll/prtFIX_WtKo_FracMax_minPep1.csv"))
         # #####################################################
     
     ## Reading Proteins Fixed toplists  ... fsetdiff(prtFIX.WtKo24,prtFIX.WtKo) ... 60 different Proteins
     ## fixed Protein list from wt24-cblb24
-    prtFIX.WtKo24 <- fread(file= paste0(adir,"/loop_all/prtFIX_WtKo24_FracMax_minPep1.csv"), header=TRUE)$Protein
+    prtFIX.WtKo24 <- fread(file= paste0(adir,"loopAll/prtFIX_WtKo24_FracMax_minPep1.csv"), header=TRUE)$Protein
     ## fixed Protein list from wt-cblb
-    prtFIX.WtKo <- fread(file= paste0(adir,"/loop_all/prtFIX_WtKo_FracMax_minPep1.csv"), header=TRUE)$Protein
+    prtFIX.WtKo <- fread(file= paste0(adir,"loopAll/prtFIX_WtKo_FracMax_minPep1.csv"), header=TRUE)$Protein
     
     ##Protein list from all comparisons
     hm.proteinAll <- unique(topPrtCom$Protein)
@@ -649,7 +685,7 @@ for (qx in 1:length(betweenChnNorm.arr)) {
         hm.dt[Gene == "Irf4", Gene := "**Irf4**"]
       }
     
-      hm.dt[, Rep := tstrsplit(BioReplicate, "_",  fixed=TRUE)[3]]
+      hm.dt[, Rep := BioReplicate]
       hm.dt[, xTag := do.call(paste, c(.SD, sep = " - Rep")), .SDcols=c("Condition", "Rep")]
       hm.dt[, yTag := do.call(paste, c(.SD, sep = " _ ")), .SDcols=c("Protein", "Gene")]
       
@@ -663,7 +699,6 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     hm.matAll <- heatmap.mat(hm.proteinAll)[[1]] # top proteins from all comparisons
     hm.matWtKo <- heatmap.mat(hm.proteinWtKo)[[1]] # top proteins all WT v. CBLB comparisons
     
-    
     hm.FIX.WtKo24 <- heatmap.mat(prtFIX.WtKo24)[[1]] # fixed toplist from comparison: wt24-cblb24 (from ref. Version)
     hm.FIX.WtKo <- heatmap.mat(prtFIX.WtKo)[[1]] # fixed toplist from comparison: wt-cblb (from ref. Version)
     
@@ -671,60 +706,55 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     hmOut.All <- hmap.plot(hm.matAll, reftb=heatmap.mat(hm.proteinAll)[[2]])
     hmOut.WtKo <- hmap.plot(hm.matWtKo, reftb=heatmap.mat(hm.proteinWtKo)[[2]])
 
-    hmOutFIX.WtKo24 <- hmap.plot(hm.FIX.WtKo24, reftb=heatmap.mat(prtFIX.WtKo24)[[2]])
-    rm <- hmap.plot(hm.FIX.WtKo, reftb=heatmap.mat(prtFIX.WtKo)[[2]])
+    # hmOutFIX.WtKo24 <- hmap.plot(hm.FIX.WtKo24, reftb=heatmap.mat(prtFIX.WtKo24)[[2]])
+    # hmOutFIX.WtKo <- hmap.plot(hm.FIX.WtKo, reftb=heatmap.mat(prtFIX.WtKo)[[2]])
     ################################################################# 
     
-    
-    
-    ## save toptable and fitlists
-    # if (mix3rev) {
-    #   savePhrase <- paste0( "__mix3rev_",
-    #                         "__FracComb_",FractComb,
-    #                         "__rmNAchnnl_",allChannelsIn,"__whichPSM_",whichPSM,
-    #                         "__MedPol_",medpolON,"__measurements_",meas,
-    #                         "__rmMix2_",remMix2, "__onlySharedPRT_",onlySharedPRT,
-    #                         "__minPptMIX_",minPptMIX, "__betweenFracNorm_", MedNorm)
-    # } 
+    # pdf("hmall.pdf", width = 16, height = 12)
+    # draw(hmOutFIX.WtKo, annotation_legend_side = "bottom")
+    # dev.off()
+    # 
 
+    
+    
     
     ## heatmaps
-    write.csv(topList, file = paste0(adir,"/loop_all/limmaTops/Top_", savePhrase, ".csv"))
-    write.csv(fitList, file = paste0(adir,"/loop_all/limmaFits/Fit_", savePhrase, ".csv"))
+    write.csv(topList, file = paste0(adir,"loopAll/limmaTops/Top_", savePhrase, ".csv"))
+    write.csv(fitList, file = paste0(adir,"loopAll/limmaFits/Fit_", savePhrase, ".csv"))
 
 
-    pdf(paste0(adir,"/loop_all/heatmap/hmapALL_",savePhrase,".pdf"), width = 16, height = 12)
+    pdf(paste0(adir,"loopAll/heatmap/hmapALL_",savePhrase,".pdf"), width = 16, height = 12)
     draw(hmOut.All, annotation_legend_side = "bottom")
     dev.off()
 
-    pdf(paste0(adir,"/loop_all/heatmap/hmapWTKO_",savePhrase,".pdf"), width = 16, height = 12)
+    pdf(paste0(adir,"loopAll/heatmap/hmapWTKO_",savePhrase,".pdf"), width = 16, height = 12)
     draw(hmOut.WtKo, annotation_legend_side = "bottom")
     dev.off()
     
     
-    pdf(paste0(adir,"/loop_all/heatmap/hmap_FixWTKO_",savePhrase,".pdf"), width = 16, height = 12)
-    draw(hmOutFIX.WtKo, annotation_legend_side = "bottom")
-    dev.off()    
-    
-    
-    pdf(paste0(adir,"/loop_all/heatmap/hmap_FixWTKO24_",savePhrase,".pdf"), width = 16, height = 12)
-    draw(hmOutFIX.WtKo24, annotation_legend_side = "bottom")
-    dev.off() 
+    # pdf(paste0(adir,"loopAll/heatmap/hmap_FixWTKO_",savePhrase,".pdf"), width = 16, height = 12)
+    # draw(hmOutFIX.WtKo, annotation_legend_side = "bottom")
+    # dev.off()    
+    # 
+    # 
+    # pdf(paste0(adir,"loopAll/heatmap/hmap_FixWTKO24_",savePhrase,".pdf"), width = 16, height = 12)
+    # draw(hmOutFIX.WtKo24, annotation_legend_side = "bottom")
+    # dev.off() 
     
     
     
     ## volcano
-    pdf(paste0(adir,"/loop_all/volcano/volc_all_",savePhrase,".pdf"), width = 17, height = 14)
+    pdf(paste0(adir,"loopAll/volcano/volc_all_",savePhrase,".pdf"), width = 17, height = 14)
     print(volc.all)
     dev.off()
     
-    pdf(paste0(adir,"/loop_all/volcano/volc_ind_",savePhrase,".pdf"), width = 12, height = 8)
+    pdf(paste0(adir,"loopAll/volcano/volc_ind_",savePhrase,".pdf"), width = 12, height = 8)
     print(volc.ind)
     dev.off()   
     
     
     ## pca
-    pdf(paste0(adir,"/loop_all/pca/PCA_",savePhrase,".pdf"), width = 9, height = 7)
+    pdf(paste0(adir,"loopAll/pca/PCA_",savePhrase,".pdf"), width = 9, height = 7)
     print(pcaplot)
     dev.off()
     
@@ -738,7 +768,7 @@ for (qx in 1:length(betweenChnNorm.arr)) {
                             c(3,3),
                             c(4,NA))
     )
-    pdf(paste0(adir,"/loop_all/versQC/QC_",savePhrase,".pdf"), width = 7, height = 12)
+    pdf(paste0(adir,"loopAll/versQC/QC_",savePhrase,".pdf"), width = 7, height = 12)
     plot(glist2)
     dev.off()
     
@@ -749,10 +779,9 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     #                         c(3,4),
     #                         c(5,NA))
     # )
-    # pdf(paste0(adir,"/loop_all/QC_plots.pdf"), width = 11, height = 14)
+    # pdf(paste0(adir,"loopAll/QC_plots.pdf"), width = 11, height = 14)
     # plot(glist1)
     # dev.off()
-    
     
     
 }}}}}}} 

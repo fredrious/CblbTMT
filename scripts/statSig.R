@@ -4,9 +4,9 @@
 ## statistical analysis -- limma
 ## returns parirwise and contrast defind statistics
 
-statSig <- function(dt, TopNperc=5) {
+statSig <- function(workf, TopNperc=5) {
   
-  
+  dt <- copy(workf)
   dt[, BioReplicate:= do.call(paste, c(.SD, sep = "_")), .SDcols=c("Mixture", "Channel", "BioReplicate")]
   dt$Run <- "single"
   dt <-  unique(dt)  
@@ -37,12 +37,13 @@ statSig <- function(dt, TopNperc=5) {
   ## store top rankrd proteins
   topList <- NULL
   
-  conds <- paste("Condition", unique(Condition), sep = "")
+  conds <- sort(factor(paste("Condition", unique(Condition), sep = "")))
+  
   for(j in 1:(length(conds)-1)){
     for(k in (j+1):length(conds)){
       cond1 <- conds[j]
       cond2 <- conds[k]
-      comp <- paste(cond1, cond2, sep="-")
+      comp <- factor(paste(cond1, cond2, sep="-"))
       contrast <- makeContrasts(contrasts=comp, levels=design)
       
       fit2 <- contrasts.fit(fit, contrast)
@@ -62,7 +63,7 @@ statSig <- function(dt, TopNperc=5) {
       
       fit.dt <- data.table(
         id = seq(nrow(fit2$coefficients)),
-        Comparison = gsub("Condition", "", paste(conds[j], conds[k],sep="-")),
+        Comparison = factor(gsub("Condition", "", paste(conds[j], conds[k],sep="-"))),
         Protein = rownames(fit2$coefficients),
         P.Value = as.vector(fit2$p.value),
         logFC = as.vector(fit2$coefficients),
@@ -88,7 +89,7 @@ statSig <- function(dt, TopNperc=5) {
   # # model by Condition + Mixture
   # contrast <- t(matrix(c(1,1,1,-1,-1,-1,0,0), nrow=1))
   rownames(contrast) <- colnames(fit$coefficients)
-  colnames(contrast) <- comp <- "WT-Cblb"
+  colnames(contrast) <- comp <- factor("WT-Cblb")
   
   fit2 <- contrasts.fit(fit, contrast)
   fit2 <- eBayes(fit2)
@@ -115,7 +116,7 @@ statSig <- function(dt, TopNperc=5) {
     SE = as.vector(sqrt(fit2$s2.post) * fit2$stdev.unscaled)
   )
   fit.dt.full[, c("Gene", "Protein") := tstrsplit(Protein, "_",  fixed=TRUE)]
-  fit.dt.full$adj.P.Val <- p.adjust(fit.dt$P.Value, method="BH")
+  fit.dt.full$adj.P.Val <- p.adjust(fit.dt.full$P.Value, method="BH")
   setcolorder(fit.dt.full, c("id","Comparison","Protein","Gene","logFC","P.Value","adj.P.Val","DF","SE"))
   fitList <- rbind(fit.dt.full, fitList)
   

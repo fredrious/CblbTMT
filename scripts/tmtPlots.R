@@ -173,8 +173,8 @@ hmap.plot <- function(hm.mat0, reftb) {
                          # column_dend_height = unit(2, "cm"), 
                          row_dend_width = unit(2, "cm"),
                          na_col = "white", 
-                         clustering_distance_rows = "pearson",
-                         clustering_distance_columns = "pearson",
+                         clustering_distance_rows = "euclidean",
+                         clustering_distance_columns = "euclidean",
                          cluster_columns = clustCol,
                          # col = circlize::colorRamp2(c(3,7), c("darkblue", "yellow"))
                          col <- colorRampPalette(rev(brewer.pal(10, "RdYlBu")) )(256),
@@ -227,8 +227,18 @@ volc.p.all <- function(ldt) {
     # FC = paste("LogFC > |1|", ), 
     # P.adj=paste("P.adj<", AdjustedCutoff, sep=""), 
     # FC_P.adj=paste("P.adj<", AdjustedCutoff, " & LogFC>|", FCCutoff, "|", sep=""))) +
-  
-
+          
+    ## order facets
+    # ldt$facet <- factor(as.factor(ldt$Comparison), levels = c(
+    #                                     "WT-Cblb"          ,"Cblb.0h-WT.0h"  , "Cblb.24h-WT.0h" , "Cblb.48h-WT.0h" , 
+    #                                     "Cblb.0h-Cblb.24h" , "Cblb.0h-WT.24h", "Cblb.24h-WT.24h", "Cblb.48h-WT.24h",
+    #                                     "Cblb.0h-Cblb.48h" , "Cblb.0h-WT.48h", "Cblb.24h-WT.48h", "Cblb.48h-WT.48h",
+    #                                     "Cblb.24h-Cblb.48h", "WT.0h-WT.24h"  , "WT.0h-WT.48h"   , "WT.24h-WT.48h" ))
+    # 
+    # ldt  <- ldt[order(match(Comparison, as.factor(facet)))]
+    # cntb <- cntb[order(match(Comparison, as.factor(facet)))]
+    # setnames(cntb, new = "facet", old="Comparison")
+    
     vplot <- 
       ggplot(data=ldt, aes(x=logFC, y = -log10(P.Value), colour = col, group = col)) +
       geom_point(alpha=0.6, size=1.75) +
@@ -236,7 +246,7 @@ volc.p.all <- function(ldt) {
       # scale_color_manual(values=wes_palette(n=4, name="Royal1"))
       # scale_color_manual(values=c("#899DA4", "#efe6c2", "#ffa75b" ,"#C93312")) +
       scale_color_manual(values=levels(ldt$col)) +
-      facet_wrap(~Comparison, ncol=4, as.table=TRUE) +
+      facet_wrap(~Comparison, ncol=4) +
     
       guides(colour = guide_legend(override.aes=list(size=2.5))) +
       
@@ -294,8 +304,11 @@ volc.p.all <- function(ldt) {
 
 ##############################
 ## Volcano plots: in seperate pages
-volc.p.ind <- function(ldt, top) {
+volc.p.ind <- function(fitList, topList) {
   
+  ldt <- copy(fitList)
+  top <- copy(topList)
+
   colvec <- c("#899DA4", "#efe6c2", "#ffa75b" ,"#C93312")
   ldt[, col := colvec[1]]
   ldt[ adj.P.Val < 0.05 , col := colvec[2]]
@@ -304,6 +317,7 @@ volc.p.ind <- function(ldt, top) {
   ldt$col <- as.factor(ldt$col)
   
   tmp <- ldt[ adj.P.Val < 0.05, .SD[which.max(adj.P.Val)], by = Comparison]
+  # tmp <- ldt[ adj.P.Val < 0.05, .SD[which.max(-log10(P.Value))], by = Comparison]
   tmp[, cutoff := -log10(P.Value)]
   ldt <- merge(ldt, tmp[, c("Comparison", "cutoff")], all.x = TRUE)
   
@@ -420,7 +434,7 @@ pDen <- function(wt, x, col, ...) {
   gp <- 
     ggplot(wt, aes_string(x=x, col=col)) + 
     geom_density(aes(linetype = Channel)) +    
-    scale_color_brewer(palette = "Dark2") + 
+    # scale_color_brewer() + 
     theme_bw() + 
     facet_wrap(~Mixture) +
     theme(legend.position = "none") +

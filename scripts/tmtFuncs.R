@@ -82,7 +82,7 @@ VSNnorm <-  function(wdn, calib) {
   
   wdn[, Intensity := 2^Abundance]
   if (toupper(FractComb) != "NONE") { # Fractions (Runs) are combined, continue with Mixtures
-    wdn.w  <- data.table::dcast(wdn, Protein + Peptide + Charge ~ Mixture + Channel, value.var = "Intensity")
+    wdn.w  <- data.table::dcast(wdn, Protein + Peptide + Charge  ~ Mixture + Channel, value.var = "Intensity")
     cols.ch <- c("Protein","Peptide","Charge")
     cols <- names(wdn.w[,-cols.ch, with=FALSE])
   } else { # Fractions (Runs) are not combined

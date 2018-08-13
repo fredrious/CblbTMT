@@ -82,7 +82,10 @@ psm.ready <-  psm.ready[, c("Fraction", "Channel", "Master.Protein.Accessions", 
                     "Mixture", "BioReplicate", "Intensity")]
 setnames(psm.ready, old = c("Master.Protein.Accessions", "Annotated.Sequence", "#.Protein.Groups"), 
          new = c("Protein", "Peptide", "numProtein") )
-psm.ready[Intensity < 1, Intensity := 1]
+
+if ( nrow(psm.ready[Intensity<1]) > 0 ) {
+  psm.ready[, Intensity := Intensity + 1-(min(Intensity, na.rm =TRUE))+0.001 ]
+}
 
 ####### STEP 1: Removing shared proteins
 ## Number of protein accessions in Protein --> this should be equal to 1.
@@ -146,7 +149,7 @@ psm.ready[dt.ID, Gene.id := Gene]
 
 psm.ready$Genetmp <- ifelse(!is.na(psm.ready$Gene.id), psm.ready$Gene.id, psm.ready$Gene.ens)
 psm.ready$Gene <- ifelse(!is.na(psm.ready$Genetmp), psm.ready$Genetmp, psm.ready$Gene.mgi)
-
+psm.ready[is.na(Gene), Gene := paste0("Prt: ",Protein)]
 
 ################################################################# 
 ## add run
@@ -175,16 +178,24 @@ psm.ready$Gene <- ifelse(!is.na(psm.ready$Genetmp), psm.ready$Genetmp, psm.ready
   # work <- revType(work)        
   
   ################################################################# 
-  
-  
- # RawBox <- 
- #  ggplot(psm.ready, aes(x=Fraction, y=Abundance0, col=Condition)) + 
+ #  
+ #  ggplot(wt, aes_string(x=x, y=y, col=col)) + 
  #    geom_boxplot() +
  #    scale_color_brewer(palette = "Dark2") + 
  #    theme_bw() + 
+ #    facet_wrap(~Mixture, scales = "free_x") +
+ #    # theme(legend.position = "none") +
+ #    theme(axis.text.x = element_text(angle = 90, vjust = 0.5), legend.position="none") 
+ #  
+ #  
+ # RawBox <-
+ #  ggplot(psm.ready, aes(x=Fraction, y=Abundance0, col=Channel)) +
+ #    geom_boxplot() +
+ #    scale_color_brewer(palette = "Dark2") +
+ #    theme_bw() +
  #    # geom_bar(aes(y = (..count..)/sum(..count..)))
  #    # geom_bar(stat = "count") +
- #    facet_wrap(~Mixture, scales = "free_x") 
+ #    facet_wrap(~Mixture, scales = "free_x")
  #  
  #  
  # RawBar <-
@@ -195,8 +206,21 @@ psm.ready$Gene <- ifelse(!is.na(psm.ready$Genetmp), psm.ready$Genetmp, psm.ready
  #   geom_bar(stat = "count", position = "dodge2") +
  #   facet_wrap(~Mixture, scales = "free_x")
  
-
-
+## pair corr plot
+  my_fn <- function(data, mapping, ...){
+    p <- ggplot(data = data, mapping = mapping) + 
+      stat_binhex(aes(alpha=..count..)) +
+      geom_smooth(method=loess, fill="red", color="red", ...) +
+      geom_smooth(method=lm, fill="blue", color="blue", ...) +
+      geom_abline(intercept = 0, slope = 1, col="darkgreen", alpha=0.6) +
+      theme_bw() + 
+      coord_fixed()
+    
+    p
+  }
+  
+  dw <- dcast(workf,  Protein + Mixture + Condition ~ BioReplicate, value.var = "Abundance")
+  g = ggpairs(dd, columns = 7:9, lower = list(continuous = my_fn))
   
 
 
