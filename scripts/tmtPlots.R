@@ -106,7 +106,7 @@ plot.profile <- function(dd,ddd) {
 
 
 ################################
-## pca plot
+## pca plot (package "factoextra")
 pca.plot <- function(dc) {
   pcap <-
     fviz_pca_ind(dc,

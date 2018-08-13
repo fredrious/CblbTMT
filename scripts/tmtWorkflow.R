@@ -116,25 +116,25 @@ for (qx in 1:length(betweenChnNorm.arr)) {
 
     
     
-    ######## for individual tags
-      tag <- "1.1.2.2.1.3.2"
-      key.tmp <- key.dt[keytag == tag]
-          keytag <- key.tmp$keytag
-          Frac10 <- key.tmp$Frac10
-          FractComb <- key.tmp$FractComb
-          allChannelsIn <- key.tmp$allChannelsIn
-          remMix2 <- key.tmp$remMix2
-          minPptMIX <- key.tmp$minPptMIX
-          betweenFracNorm <- key.tmp$betweenFracNorm
-          betweenChnNorm <- key.tmp$betweenChnNorm
-          savePhrase0 <- paste0( keytag,"__Frac10_",Frac10,"__Frac_",FractComb,
-                              "__rmNAch_",allChannelsIn,
-                              "__rmM2_",remMix2,
-                              "__minPpt_",minPptMIX, "__FracNrm_", betweenFracNorm,
-                              "__ChnNrm_", betweenChnNorm)
-          savePhrase <- gsub("TRUE","T", savePhrase0)
-          savePhrase <- gsub("FALSE","F", savePhrase0)
-    ######## for individual tags
+    # ######## for individual tags - not to be run together with for loops!
+    #   tag <- "1.1.2.2.1.3.2"
+    #   key.tmp <- key.dt[keytag == tag]
+    #       keytag <- key.tmp$keytag
+    #       Frac10 <- key.tmp$Frac10
+    #       FractComb <- key.tmp$FractComb
+    #       allChannelsIn <- key.tmp$allChannelsIn
+    #       remMix2 <- key.tmp$remMix2
+    #       minPptMIX <- key.tmp$minPptMIX
+    #       betweenFracNorm <- key.tmp$betweenFracNorm
+    #       betweenChnNorm <- key.tmp$betweenChnNorm
+    #       savePhrase0 <- paste0( keytag,"__Frac10_",Frac10,"__Frac_",FractComb,
+    #                           "__rmNAch_",allChannelsIn,
+    #                           "__rmM2_",remMix2,
+    #                           "__minPpt_",minPptMIX, "__FracNrm_", betweenFracNorm,
+    #                           "__ChnNrm_", betweenChnNorm)
+    #       savePhrase <- gsub("TRUE","T", savePhrase0)
+    #       savePhrase <- gsub("FALSE","F", savePhrase0)
+    # ######## for individual tags
 
           
           
@@ -621,16 +621,16 @@ for (qx in 1:length(betweenChnNorm.arr)) {
     
     #################################################################
     ## Generate PCA plots
-    prtvar <- workf0[, c(.(var = var(Abundance))), by = list(Protein)]
-      tmp <- prtvar[order(-var)]
-      tmp <- tmp[1:500,]
-      tmp <- workf0[Protein %in% tmp$Protein,]
+    prtvar <- workf0[, c(.(var = var(Abundance))), by = list(Protein)] ## calculate variance for each Protein
+      tmp <- prtvar[order(-var)] ## sort proteins according to variance
+      tmp <- tmp[1:500,] ## take top 500 variant proteins
+      tmp <- workf0[Protein %in% tmp$Protein,] 
 
-        wk <- data.table::dcast(tmp, Protein ~ Condition + Mixture + BioReplicate, value.var = "Abundance")
-        wk$na_count <- apply(wk[,-1], 1, function(x) sum(is.na(x)))
-        wk <- wk[na_count ==0]
-        mat <- as.matrix(wk[,-c("Protein","na_count")])
-        pcaF = prcomp(t(mat), scale. = FALSE, center = TRUE)
+        wk <- data.table::dcast(tmp, Protein ~ Condition + Mixture + BioReplicate, value.var = "Abundance") ## to long format
+        wk$na_count <- apply(wk[,-1], 1, function(x) sum(is.na(x))) ## count NA per raw
+        wk <- wk[na_count == 0] ## continue with rows where NA count is 0
+        mat <- as.matrix(wk[,-c("Protein","na_count")]) ## convert to matrix
+        pcaF = prcomp(t(mat), scale. = FALSE, center = TRUE) ## compute PCA
 
     ## plot pca
     pcaplot <- pca.plot(pcaF)
